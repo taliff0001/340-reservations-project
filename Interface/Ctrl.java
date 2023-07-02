@@ -1,24 +1,22 @@
 
 class Ctrl {
 	
-		private DataSource ds;
-		private TextIO textIO;
 		private String queryRslt;
 	
 	public Ctrl(String[] args) {
 		
-		ds = DataSource.getInstance(args);
-		
+		DataSource datasource = DataSource.getInstance(); //Return uninitialized class instance
+		datasource.openConnection(args)
 	}
 		
-		public void doStuff(){
+		public void beginMainLoop(){
 		
-			textIO = TextIO.getInstance();
+			TextIO textIO = TextIO.getInstance();
 		
-			String promptMsg = "\nEnter \"lst\" to display all employees or \"ext\" to exit"
+/* 			String promptMsg = "\nEnter \"lst\" to display all employees or \"ext\" to exit"
 			+ "\nOptional arguments: \"-i\": display employee ID's, \"-a\": display all employee data";
 		
-			String input = textIO.prompt(promptMsg);
+			String input = textIO.prompt(promptMsg); */
 				
 			String[] parsed = input.split("\\s+");
 			

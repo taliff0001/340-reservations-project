@@ -5,13 +5,11 @@ public class DataSource {
     private String user;
     private String pass;
     private Connection conn;
-	
 	private static volatile DataSource instance;
 
-	public DataSource(String[] args) {
+	private DataSource(String[] args) {
         this.user = args[0];
         this.pass = args[1];
-        conn = null;
 
         try {
             conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
@@ -20,33 +18,17 @@ public class DataSource {
         }
     }
 
-	public static DataSource getInstance(String[] args) {
+	public static openConnection(String[] args) { //No Params
 	   if (instance == null) {
 		 synchronized (DataSource.class)
 		 {
 			 if (instance == null){
-				instance = new DataSource(args);
+				instance = new DataSource(arg);
 			 }
 		 }
 	   }
 	   return instance;
 	  }
-
-/*     public String empList() {
-        String employeeList = "";
-        String query = "SELECT fname, lname FROM employees ORDER BY fname";
-
-        try (Statement stmt = conn.createStatement();
-             ResultSet rset = stmt.executeQuery(query)) {
-            while (rset.next()) {
-                employeeList += rset.getString("fname") + " " + rset.getString("lname") + ", ";
-            }
-        } catch (SQLException e) {
-            System.out.println("Could not retrieve employee list from the database: " + e);
-        }
-        employeeList = employeeList.substring(0, employeeList.length() - 2).strip();
-        return employeeList;
-    } */
 
     public String empList(String optional) {
 		
@@ -93,7 +75,7 @@ public class DataSource {
         return employeeList;
     }
 
-    public void close() {
+    public static void close() {
         try {
             if (conn != null) {
                 conn.close();
