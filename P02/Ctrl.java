@@ -1,4 +1,3 @@
-package airports;
 
 import java.util.ArrayList;
 

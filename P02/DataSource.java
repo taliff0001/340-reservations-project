@@ -1,5 +1,3 @@
-package airports;
-
 import java.sql.*;
 
 public class DataSource {

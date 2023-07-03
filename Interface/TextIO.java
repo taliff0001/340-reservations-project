@@ -1,4 +1,4 @@
-package airports;
+
 
 /**
  * This class handles all user interaction. 
