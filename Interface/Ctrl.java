@@ -1,8 +1,8 @@
+package airports;
+
 
 class Ctrl {
-	
-		private String queryRslt;
-	
+		
 	public Ctrl(String[] args) {
 		
 		DataSource datasource = DataSource.getInstance(); //Return uninitialized class instance
@@ -11,21 +11,40 @@ class Ctrl {
 		
 		public void beginMainLoop(){
 		
-			TextIO textIO = TextIO.getInstance();
-		
-/* 			String promptMsg = "\nEnter \"lst\" to display all employees or \"ext\" to exit"
-			+ "\nOptional arguments: \"-i\": display employee ID's, \"-a\": display all employee data";
-		
-			String input = textIO.prompt(promptMsg); */
-				
+			TextIO textIO = TextIO.getInstance(); // 2 Methods - display and prompt
+			String prompt = ">";
+			String consoleIn = textIO.prompt(prompt);
 			String[] parsed = input.split("\\s+");
 			
-			String one = parsed[0];
-			String two = null;			
+			String cmd = parsed[0];
+			String param1 = null;
+			String param2 = null;			
 			
-			if(parsed.length > 1)
-					two = parsed[1];
+			if(parsed.length >= 2)
+				param1 = parsed[1];
+			if(parsed.length == 3)
+				param2 = parsed[2];
+			
+			switch(cmd){
 				
+				case "help":
+					help();
+				case "quit":
+					quit();
+				case "lst":
+					listAirports();
+					break;
+				case "fnd":
+					findDirectFlight(param1, param2);
+					break;
+				case "prt":
+					printTicket(param1); //need a cast here
+				
+			}
+
+
+
+
 			while(!one.equals("ext")) {
 			
 				if(one.equals("lst")){								

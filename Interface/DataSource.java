@@ -1,3 +1,5 @@
+package airports;
+
 import java.sql.*;
 
 public class DataSource {
@@ -15,7 +17,7 @@ public class DataSource {
             conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
         } catch (SQLException e) {
             System.out.println("Could not establish a connection to the database: " + e);
-        }
+        } finally{ close() }
     }
 
 	public static openConnection(String[] args) { //No Params

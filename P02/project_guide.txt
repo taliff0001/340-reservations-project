@@ -1,0 +1,58 @@
+
+From feedback:
+
+-- End everything w/ COMMIT
+
+-- Use conditional operator when possible
+
+-- No Driver exit, DataSource.close() should check connection and close if NOT NULL
+
+-- Only local variables in Ctrl
+
+-- Meaningful names
+
+-- Each command called in a switch statement / method for each command
+
+-- Process command parameters in Ctrl, not Source
+
+-- DataSource ONLY interacts with DB
+
+-- DataSource should have a single method for each command (e.g., listEmployeeNames())
+
+[jp] The singleton pattern uses a static method to return a reference to the instance. The method must be static because you are calling the class (the one and only class) to get an instance. Hence, you need a class method. Class methods are static in Java.
+
+ 
+
+The first method you call to get the DataSource or TextIO must be static. The best way is to call getInstance from the controller, as you’ve done, but have getInstance return a DataSource object with connection set to null. Then, immediately call a non-static open method that takes the username and password and initializes the connection. It’s messy, but the program must be able to call getInstance without having the username and password. You don’t want to be passing credentials all over the program. Make sense?
+
+ 
+
+I want you to use good OOP design practices. There should only be three static methods: the driver and the two class methods that return an instance of the DataSource and TextIO.
+
+
+
+
+*Update materialized view on commit??
+
+-- Verify correct # of arguments
+
+-- DataSource - one method for each operation
+
+-- DataSource - each method should return a DAO
+
+-- Read outside information about DAO's
+
+NOTES:
+
+1.) Tickets:
+	
+	- Print ticket should be a method within the ticket class
+	- DataSource method for ticket access should return CUST_ID, FIRST, LAST
+
+2.) Needed DAO's: Flight, FlightsDAO (for returning multiple flights), TicketDAO, Airport / AirportsDAO
+
+3.) Should be a customer class
+
+4.) Should a new connection instance be initialized every time a connection is made? No, I don't think so.
+
+5.) Main should store a reference to datasource shouldn't it
