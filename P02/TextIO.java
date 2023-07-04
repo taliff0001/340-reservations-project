@@ -33,7 +33,7 @@ public class TextIO {
 
   public void display(String msg) 
   {
-    System.out.println(msg);
+    System.out.print(msg);
   }
 
   public String prompt(String msg) 

@@ -5,6 +5,10 @@ public class AirportsDAO {
 
 	private ArrayList<Airport> airports;
 
+	public AirportsDAO(){
+		airports = new ArrayList<>();
+	}
+	
 	@Override
 	public String toString() {
 		return "AirportsDAO [airports=" + airports + "]";

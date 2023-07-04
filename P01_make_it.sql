@@ -1,5 +1,8 @@
 SET SERVEROUTPUT ON;
 
+
+DROP VIEW Flight_Info_LV;
+DROP MATERIALIZED VIEW Airports_MV;  
 DROP TABLE Legs;
 DROP TABLE Seats;
 DROP TABLE Tickets;
@@ -74,29 +77,30 @@ CREATE TABLE Legs (
 
 SHOW ERRORS;
 
+/*
+     TIME FOR SOME VIEWS
 
---------------------------------------------------------------------------------
+           |  |
+        ___|  |___
+        \        /
+         \      /
+          \    /
+           \  /
+            \/
+*/
 
-
-
-DROP VIEW Flight_Info_MV;
-DROP MATERIALIZED VIEW Airports_MV;  
-
-
------------------------------------------------------------------------------
--- 1. Create a Logical View for sales of baseball products 
------------------------------------------------------------------------------
 
 CREATE VIEW Flight_Info_LV AS
-(  SELECT  day_key, prod_key, Sales_Amount, Units_Sold
-   FROM      Sales_Fact 
-   WHERE  prod_key IN (1001, 1003, 1004, 1005, 1006, 1008, 1010)
+(
+ SELECT F.FID, F.dep_airport,F.dep_date, F.dest_airport, F.arrival_date,
+ MAX(S.seat_no) - MAX(L.seat_no) AS Open_Seats
+ FROM Flights F
+ JOIN seats S ON F.FID = S.FID
+ JOIN legs L ON F.FID = L.FID
+ GROUP BY F.FID, F.dep_airport,F.dep_date, F.dest_airport, F.arrival_date
 );   
 
 
--------------------------------------------------------------------
-Airports_MV
--------------------------------------------------------------------
 
 CREATE MATERIALIZED VIEW Airports_MV
  REFRESH ON COMMIT
@@ -105,13 +109,23 @@ CREATE MATERIALIZED VIEW Airports_MV
    SELECT airport_code, city, state
    FROM airports
   );
+  
+  COMMIT;
 
---------------------------------------------------------------------------------
+/*
+
+    FUNCTIONS DOWN YONDER
+
+           |  |
+        ___|  |___
+        \        /
+         \      /
+          \    /
+           \  /
+            \/
 
 
-
-
-/* (Needed ceiling function for the add_seats trigger) */
+(Wanted a ceiling function for the add_seats trigger) */
 
 CREATE OR REPLACE FUNCTION CEILING(x NUMBER)
  RETURN NUMBER AS result NUMBER;
@@ -126,8 +140,8 @@ END;
 /
 
 /*
-Hopefully you'll forgive me - instead of a sequence I wrote this trigger
-that auto-loads 60 seats complete with all info for each flight added
+Hopefully this isn't a screw-up - instead of a sequence I wrote this trigger
+that auto-loads 60 seats and info for each flight added
 */
 
 CREATE OR REPLACE TRIGGER add_seats_test

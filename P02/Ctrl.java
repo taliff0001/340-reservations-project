@@ -1,5 +1,7 @@
 
+
 import java.util.ArrayList;
+import java.util.Date;
 
 class Ctrl {
 
@@ -55,35 +57,34 @@ class Ctrl {
 	}
 	
 	private String help() {
-
 		String commands = "\nhelp -- display a list of commands\n" + "quit -- quit the application.\n"
-				+ "lst airports -- list all airports in the system.\n"
-				+ "fnd <departure airport> <destination airport> -- list all direct "
-				+ "flights between the origin and destination.\n" + "prt ticket#\n";
-
+			+ "lst airports -- list all airports in the system.\n"
+			+ "fnd <departure airport> <destination airport> -- list all direct "
+			+ "flights between the origin and destination.\n" + "prt ticket#\n";
 		return commands;
 	}
 
 	private String printTicket(String param1, DataSource ds) {
-
 		String results = null;
-
 		return results;
 	}
 
 	private String findDirectFlight(String param1, String param2, DataSource ds) {
-
-		String results = null;
-
+		FlightsDAO flightsDAO = ds.findDirectFlight(param1, param2);		
+		ArrayList<Flight> arraylistf = flightsDAO.getFlightsList();
+		String results = "";
+		for (Flight f : arraylistf)
+			results += f.getFID() + "\t" + f.getDepartureAirportCode() + "\t" + f.getDepartureTime()
+			+ "\t" + f.getArrivalAirportCode() + "\t" + f.getArrivalTime() + "\t" + f.getOpenSeats() + "\n";
 		return results;
 	}
 
 	private String getAirportList(DataSource ds) {
 		AirportsDAO aDAO = ds.listAirports();
-		ArrayList<Airport> alap = aDAO.getAirports();
+		ArrayList<Airport> arrayListAirports = aDAO.getAirports();
 		String results = "";
-		for (Airport a : alap)
-			results += a.getCode() + "\t" + a.getCity() + "\t" + a.getState();
+		for (Airport a : arrayListAirports)
+			results += a.getCode() + "\t" + a.getCity() + "\t" + a.getState() + "\n";
 		return results;
 	}
 

@@ -1,12 +1,19 @@
+
+
 import java.sql.*;
+import java.util.Date;
 
 public class DataSource {
 
 	private String user;
 	private String pass;
 	private TextIO textIO;
-	private Connection conn;
+	private static Connection conn;
 	private static volatile DataSource instance;
+
+	private DataSource() {
+		textIO = TextIO.getInstance();
+	}
 
 	private DataSource(String[] args) {
 		this.textIO = TextIO.getInstance();
@@ -15,19 +22,20 @@ public class DataSource {
 
 		try {
 			conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
+			if (conn != null)
+				System.out.println("Got connection");
 		} catch (SQLException e) {
 			System.out.println("Could not establish a connection to the database: " + e);
 		} finally {
-			closeConn();
+//			closeConn();
 		}
 	}
 
 	public static DataSource getInstance() {
-		DataSource datasource = null;
-		return datasource;
+		return new DataSource();
 	}
 
-	public static DataSource openConnection(String[] args) { // No Params
+	public void openConnection(String[] args) {
 		if (instance == null) {
 			synchronized (DataSource.class) {
 				if (instance == null) {
@@ -35,7 +43,6 @@ public class DataSource {
 				}
 			}
 		}
-		return instance;
 	}
 
 	public void closeConn() {
@@ -53,20 +60,47 @@ public class DataSource {
 		// get all airports with select statement
 		String airportsQuery = "SELECT * FROM Airports_MV";
 		AirportsDAO aDAO = null;
-		try (Statement stmt = conn.createStatement(); ResultSet rset = stmt.executeQuery(airportsQuery)) {
+		try {
+			Statement stmt = conn.createStatement();
+			ResultSet rset = stmt.executeQuery(airportsQuery);
 
 			aDAO = new AirportsDAO();
 
 			while (rset.next()) {
 				aDAO.addAirport(
-					new Airport(rset.getString("airport_code"),
-					rset.getString("city"), rset.getString("state")));
+						new Airport(rset.getString("airport_code"), rset.getString("city"), rset.getString("state")));
 			}
 
 		} catch (SQLException e) {
 			textIO.display("Could not retrieve airport list from the database: " + e);
 		}
+
 		return aDAO;
+
+	}
+
+	public FlightsDAO findDirectFlight(String depart, String arrive) {
+
+		String flightsQuery = "SELECT * FROM Flight_Info_LV WHERE dep_airport = '?' AND dest_airport = '?' ;";
+		FlightsDAO fDAO = null;
+
+		try { 
+			PreparedStatement queryDirectFlights = conn.prepareStatement(flightsQuery); 
+			queryDirectFlights.setString(1, depart.toUpperCase());
+			queryDirectFlights.setString(2, arrive.toUpperCase());
+			ResultSet rset = queryDirectFlights.executeQuery();
+
+			fDAO = new FlightsDAO();
+
+			while (rset.next()) {
+				fDAO.addFlight(new Flight(rset.getLong("FID"), rset.getString("dep_airport"),
+						rset.getString("dest_airport"), rset.getDate("dep_date"),
+						rset.getDate("arrival_date"), rset.getShort("Open_Seats")));
+			}
+		} catch (SQLException e) {
+			textIO.display("Could not retrieve airport list from the database: " + e);
+		}
+		return fDAO;
 	}
 
 	/*****************************************************************************************/
