@@ -1,0 +1,92 @@
+-- customer 1 : WOULD GET ID 500
+INSERT INTO Customers (first_name, last_name, balance) 
+VALUES ("Cole", "Daniels", 150.00);
+
+-- customer 2: WOULD GET ID 501
+INSERT INTO Customers (first_name, last_name, balance)
+VALUES ("Tommy", "Aliff", 250.00);
+
+1) Direct flight from RIC to DTW (richmond to detroit) 5:48 am to 7:29 am departs thrusday Aug 3rd. return thur Aug 10 FID ( delta 2237) and ( delta 4106) 
+ 
+(FID WOULD BE 1000)
+INSERT INTO Flights (dep_date, dep_airport, arrival_date, dest_airport)
+VALUES (TO_DATE('2023-08-3 05:48:00', 'YYYY-MM-DD HH24:MI:SS'), "RIC", TO_DATE('2023-08-3 07:29:00', 'YYYY-MM-DD HH24:MI:SS'), "DTW");
+
+ASSOCIATED TICKET (would get id 4000): 
+INSERT INTO Tickets (cust_id, purchase_date, price)
+VALUES (500, TO_DATE('2023-04-04 13:24:00', 'YYYY-MM-DD HH24:MI:SS'), 100.00);
+
+ASSOCIATED LEG: 
+INSERT INTO Legs (FID, ticket_no, seat_no)
+VALUES (1000, 4000, SEAT_NO);
+
+2) indirect flight from DTW to RIC stopping at ATL ... flight from DTW to ATL at 5:20 am to 7:16 am. thur aug 10 then from ATL to RIC 8:04 am to 9:40 am
+   FID (delta 2375) and (DELTA 1285)
+
+(FID WOULD BE 1001)
+INSERT INTO Flights (dep_date, dep_airport, arrival_date, dest_airport)
+VALUES (TO_DATE('2023-08-10 05:20:00', 'YYYY-MM-DD HH24:MI:SS') , "DTW", TO_DATE('2023-08-10 07:16:00', 'YYYY-MM-DD HH24:MI:SS'), "ATL");
+
+
+ASSOCIATED TICKET (would get id 4001): 
+INSERT INTO Tickets (cust_id, purchase_date, price) 
+VALUES (501, TO_DATE('2023-04-04 13:24:00', 'YYYY-MM-DD HH24:MI:SS'), 100.00);
+
+ASSOCIATED LEG 1: 
+INSERT INTO Legs (FID, ticket_no, seat_no)
+VALUES (1001, 4001, SEAT_NO);
+
+SECOND FLIGHT:
+(FID WOULD BE 1002)
+INSERT INTO Flights (dep_date, dep_airport, arrival_date, dest_airport)
+VALUES (TO_DATE('2023-08-10 08:04:00', 'YYYY-MM-DD HH24:MI:SS'), "ATL", TO_DATE('2023-08-10 09:40:00', 'YYYY-MM-DD HH24:MI:SS'), "RIC");
+
+ASSOCIATED TICKET (would get id 4002): 
+INSERT INTO Tickets (cust_id, purchase_date, price) 
+VALUES (501, TO_DATE('2023-04-04 13:24:00', 'YYYY-MM-DD HH24:MI:SS'), 100.00);
+
+ASSOCIATED LEG 2: 
+INSERT INTO Legs (FID, ticket_no, seat_no)
+VALUES (1002, 4002, SEAT_NO);
+
+3) direct flight from ATL to LAX thur aug 4th at 7:16 am and arriving at 8:45 am
+
+(FID WOULD BE 1003)
+INSERT INTO Flights (dep_date, dep_airport, arrival_date, dest_airport)
+VALUES (TO_DATE('2023-08-4 07:16:00', 'YYYY-MM-DD HH24:MI:SS'), "ATL", TO_DATE('2023-08-4 08:45:00', 'YYYY-MM-DD HH24:MI:SS'), "LAX");
+
+ASSOCIATED TICKET (would get id 4003): 
+INSERT INTO Tickets (cust_id, purchase_date, price) 
+VALUES (500, TO_DATE('2023-04-04 13:24:00', 'YYYY-MM-DD HH24:MI:SS'), 125.00);
+
+ASSOCIATED LEG: 
+INSERT INTO Legs (FID, ticket_no, seat_no)
+VALUES (1003, 4003, SEAT_NO);
+
+4) long layover flight from ATL to LAS (vegas) then from LAS to LAX (leaves the next day). first flight is on thur aug 3rd at 9:45pm arriving at 10:55pm
+   second flight is friday aug 4th at 5:45 am to 7:06 am
+	
+(FID WOULD BE 1004)
+INSERT INTO Flights (dep_date, dep_airport, arrival_date, dest_airport)
+VALUES (TO_DATE('2023-08-3 21:45:00', 'YYYY-MM-DD HH24:MI:SS'), "ATL", TO_DATE('2023-08-3 22:55:00', 'YYYY-MM-DD HH24:MI:SS'), "LAS");
+
+ASSOCIATED TICKET (would get id 4004): 
+INSERT INTO Tickets (cust_id, purchase_date, price) 
+VALUES (501, TO_DATE('2023-04-04 13:24:00', 'YYYY-MM-DD HH24:MI:SS'), 75.00);
+
+ASSOCIATED LEG: 
+INSERT INTO Legs (FID, ticket_no, seat_no)
+VALUES (1004, 4004, SEAT_NO);
+
+SECOND FLIGHT: 
+(FID WOULD BE 1005)
+INSERT INTO Flights (dep_date, dep_airport, arrival_date, dest_airport)
+VALUES (TO_DATE('2023-08-4 05:45:00', 'YYYY-MM-DD HH24:MI:SS'), "LAS", TO_DATE('2023-08-4 07:06:00', 'YYYY-MM-DD HH24:MI:SS'), "LAX");
+
+ASSOCIATED TICKET (would get id 4005): 
+INSERT INTO Tickets (cust_id, purchase_date, price) 
+VALUES (501, TO_DATE('2023-04-04 13:24:00', 'YYYY-MM-DD HH24:MI:SS'), 85.00);
+
+ASSOCIATED LEG: 
+INSERT INTO Legs (FID, ticket_no, seat_no)
+VALUES (1005, 4005, SEAT_NO);

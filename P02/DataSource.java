@@ -1,5 +1,4 @@
 
-
 import java.sql.*;
 import java.util.Date;
 
@@ -27,7 +26,7 @@ public class DataSource {
 		} catch (SQLException e) {
 			System.out.println("Could not establish a connection to the database: " + e);
 		} finally {
-//			closeConn();
+			//closeConn();
 		}
 	}
 
@@ -74,125 +73,105 @@ public class DataSource {
 		} catch (SQLException e) {
 			textIO.display("Could not retrieve airport list from the database: " + e);
 		}
-
 		return aDAO;
+	}
 
+	public Customer findCustomer(long custID) {
+
+		String custQuery = "SELECT * FROM Customers WHERE Cust_ID = ?";
+		Customer cust = null;
+
+		try {
+			PreparedStatement getCustomer = conn.prepareStatement(custQuery);
+			getCustomer.setLong(1, custID);
+			ResultSet rset = getCustomer.executeQuery();
+			if (rset.next()) {
+				cust = new Customer(rset.getLong("cust_ID"), rset.getString("first_name"), rset.getString("last_name"),
+						rset.getDouble("balance"));
+			}
+		} catch (SQLException e) {
+			textIO.display("Could not retrieve customer from the database: " + e);
+		}
+		return cust;
 	}
 
 	public FlightsDAO findDirectFlight(String depart, String arrive) {
 
-		String flightsQuery = "SELECT * FROM Flight_Info_LV WHERE dep_airport = '?' AND dest_airport = '?' ;";
+		String flightsQuery = "SELECT * FROM Flight_Info_LV WHERE dep_airport = ? AND dest_airport = ? ";
 		FlightsDAO fDAO = null;
 
-		try { 
-			PreparedStatement queryDirectFlights = conn.prepareStatement(flightsQuery); 
-			queryDirectFlights.setString(1, depart.toUpperCase());
-			queryDirectFlights.setString(2, arrive.toUpperCase());
+		try {
+			PreparedStatement queryDirectFlights = conn.prepareStatement(flightsQuery);
+			queryDirectFlights.setString(1, depart);
+			queryDirectFlights.setString(2, arrive);
 			ResultSet rset = queryDirectFlights.executeQuery();
-
 			fDAO = new FlightsDAO();
-
 			while (rset.next()) {
-				fDAO.addFlight(new Flight(rset.getLong("FID"), rset.getString("dep_airport"),
-						rset.getString("dest_airport"), rset.getDate("dep_date"),
-						rset.getDate("arrival_date"), rset.getShort("Open_Seats")));
+				fDAO.addFlight(
+						new Flight(rset.getLong("FID"), rset.getString("dep_airport"), rset.getString("dest_airport"),
+								rset.getDate("dep_date"), rset.getDate("arrival_date"), rset.getShort("Open_Seats")));
 			}
 		} catch (SQLException e) {
-			textIO.display("Could not retrieve airport list from the database: " + e);
+			textIO.display("Could not retrieve flight list from the database: " + e);
 		}
 		return fDAO;
 	}
 
-	/*****************************************************************************************/
+	public Flight findDirectFlight(long FID) {
 
-	public String empList(String optional) {
+		String flightsQuery = "SELECT * FROM Flight_Info_LV WHERE FID = ?";
+		Flight flight = null;
 
-		String employeeList = "";
-		String query = "";
-
-		if (optional != null && optional.equals("-i")) {
-			query = "SELECT * FROM employees ORDER BY fname";
-
-			try (Statement stmt = conn.createStatement(); ResultSet rset = stmt.executeQuery(query)) {
-				while (rset.next()) {
-					employeeList += rset.getString("empid") + " | " + rset.getString("fname") + " | "
-							+ rset.getString("lname") + "\n";
-				}
-			} catch (SQLException e) {
-				System.out.println("Could not retrieve employee list from the database: " + e);
+		try {
+			PreparedStatement queryDirectFlights = conn.prepareStatement(flightsQuery);
+			queryDirectFlights.setLong(1, FID);
+			ResultSet rset = queryDirectFlights.executeQuery();
+			if (rset.next()) {
+				flight = new Flight(rset.getLong("FID"), rset.getString("dep_airport"), rset.getString("dest_airport"),
+						rset.getDate("dep_date"), rset.getDate("arrival_date"), rset.getShort("Open_Seats"));
+				
 			}
-		} else if (optional != null && optional.equals("-a")) {
-			query = "SELECT * FROM employees ORDER BY fname";
-
-			try (Statement stmt = conn.createStatement(); ResultSet rset = stmt.executeQuery(query)) {
-				while (rset.next()) {
-					employeeList += rset.getString("empID") + " | " + rset.getString("fname") + " | "
-							+ rset.getString("lname") + " | " + rset.getString("sex") + rset.getString("dept") + " | "
-							+ rset.getString("phone") + " | " + rset.getString("salary") + "\n";
-				}
-			} catch (SQLException e) {
-				System.out.println("Could not retrieve employee list from the database: " + e);
-			}
-		} else {
-			query = "SELECT * FROM employees ORDER BY fname";
-
-			try (Statement stmt = conn.createStatement(); ResultSet rset = stmt.executeQuery(query)) {
-				while (rset.next()) {
-					employeeList += rset.getString("fname") + " | " + rset.getString("lname") + "\n";
-				}
-			} catch (SQLException e) {
-				System.out.println("Could not retrieve employee list from the database: " + e);
-			}
+		} catch (SQLException e) {
+			textIO.display("Could not retrieve flight list from the database: " + e);
 		}
-		return employeeList;
+		return flight;
 	}
 
-}
+	public Ticket getTicket(long ticketNo) {
 
-//  public String empList(String optional) {
-//		
-//        String employeeList = "";
-//		String query = "";
-//		
-//		if(optional != null && optional.equals("-i")){
-//			query = "SELECT * FROM employees ORDER BY fname";
-//
-//			try (Statement stmt = conn.createStatement();
-//				 ResultSet rset = stmt.executeQuery(query)) {
-//				while (rset.next()) {
-//					employeeList += rset.getString("empid") + " | " + rset.getString("fname") + " | " + rset.getString("lname") + "\n";
-//				}
-//			} catch (SQLException e) {
-//				System.out.println("Could not retrieve employee list from the database: " + e);
-//			}
-//		}
-//		else if (optional != null && optional.equals("-a")){
-//			query = "SELECT * FROM employees ORDER BY fname";
-//
-//			try (Statement stmt = conn.createStatement();
-//				 ResultSet rset = stmt.executeQuery(query)) {
-//				while (rset.next()) {
-//					employeeList += rset.getString("empID") + " | " + rset.getString("fname") + " | " + rset.getString("lname")
-//					+ " | " + rset.getString("sex") + rset.getString("dept") + " | " + rset.getString("phone")  + " | " + rset.getString("salary") + "\n";
-//				}
-//			} catch (SQLException e) {
-//				System.out.println("Could not retrieve employee list from the database: " + e);
-//			}
-//		}
-//		else{
-//			query = "SELECT * FROM employees ORDER BY fname";
-//
-//			try (Statement stmt = conn.createStatement();
-//				 ResultSet rset = stmt.executeQuery(query)) {
-//				while (rset.next()) {
-//					employeeList += rset.getString("fname") + " | " + rset.getString("lname") + "\n";
-//				}
-//			} catch (SQLException e) {
-//				System.out.println("Could not retrieve employee list from the database: " + e);
-//			}
-//		}
-//        return employeeList;
-//    }
-//    
-//    
-//
+		Ticket ticket = null;
+		String ticketsQuery = "SELECT * FROM Tickets WHERE ticket_No = ?";
+		// Get Customer object
+		try {
+			PreparedStatement queryTickets = conn.prepareStatement(ticketsQuery);
+			queryTickets.setLong(1, ticketNo);
+			ResultSet rset = queryTickets.executeQuery();
+			ticket = new Ticket(ticketNo);
+			rset.next();
+			ticket.setCustID(rset.getLong("cust_id"));
+			ticket.setPurchaseDate(rset.getDate("purchase_date"));
+			ticket.setPrice(rset.getDouble("price"));
+		} catch (SQLException e) {
+			textIO.display("Could not retrieve flight list from the database: " + e);
+		}
+		return ticket;
+	}
+	
+	public Legs getLegs(long ticketNo) { //All legs for a single ticket
+
+		Legs legs = null;
+		String legsQuery = "SELECT FID FROM Legs WHERE ticket_No = ?";
+		try {
+			PreparedStatement queryLegs = conn.prepareStatement(legsQuery);
+			queryLegs.setLong(1, ticketNo);
+			ResultSet rset = queryLegs.executeQuery();
+			legs = new Legs(ticketNo);
+			while(rset.next()) {
+				legs.addFID(rset.getLong("FID"));
+			}
+		} catch (SQLException e) {
+			textIO.display("Could not retrieve flight list from the database: " + e);
+		}
+		return legs;
+	}
+} // End class
