@@ -13,7 +13,7 @@ public class Airport {
 	
 	@Override
 	public String toString() {
-		return "Airports [code=" + code + ", city=" + city + ", state=" + state + "]";
+		return "Code " + code + " City " + city + " State " + state;
 	}
 
 	public String getCode() {

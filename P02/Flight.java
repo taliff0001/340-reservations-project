@@ -1,5 +1,7 @@
 
+import java.text.DateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 public class Flight {
 
@@ -8,7 +10,15 @@ public class Flight {
 	private String arrivalAirportCode;
 	private Date departureTime;
 	private Date arrivalTime;
+	private String dateAndTimeDepart;
+	private String dateAndTimeArrive;
+	private String justDepartureTime;
+	
 	private short openSeats;
+	
+	// When an instance of a flight is initialized, the constructor also formats the dates
+	// in various ways and stores them as Strings for the controller to access when it
+	// formulates text to be used for output
 	
 	public Flight(long fID, String departureAirportCode, String arrivalAirportCode, Date departureTime,
 			Date arrivalTime, short openSeats) {
@@ -18,13 +28,21 @@ public class Flight {
 		this.departureTime = departureTime;
 		this.arrivalTime = arrivalTime;
 		this.openSeats = openSeats;
+		DateFormat df = DateFormat.getDateInstance(DateFormat.SHORT);
+		this.dateAndTimeDepart = df.format(departureTime);
+		df = DateFormat.getTimeInstance(DateFormat.SHORT);
+		this.dateAndTimeArrive = df.format(arrivalTime);
+		this.justDepartureTime = df.format(departureTime);	
 	}
+	
 	@Override
 	public String toString() {
-		return "Flights [FID=" + FID + ", departureAirportCode=" + departureAirportCode + ", arrivalAirportCode="
-				+ arrivalAirportCode + ", departureTime=" + departureTime + ", arrivalTime=" + arrivalTime
-				+ ", openSeats=" + openSeats + "]";
+		return  getFID() + "\t" + getDepartureAirportCode() + "\t" + getDateDepart() + " " + getJustDepartureTime() + "\t"
+				+ getArrivalAirportCode() + "\t" + getDateAndTimeArrive() + "\t" + getOpenSeats() + "\n";
 	}
+	
+	// Getters and Setters
+
 	public long getFID() {
 		return FID;
 	}
@@ -60,6 +78,24 @@ public class Flight {
 	}
 	public void setOpenSeats(short openSeats) {
 		this.openSeats = openSeats;
+	}
+	public String getDateDepart() {
+		return dateAndTimeDepart;
+	}
+	public void setDateAndTimeDepart(String dateAndTimeDepart) {
+		this.dateAndTimeDepart = dateAndTimeDepart;
+	}
+	public String getDateAndTimeArrive() {
+		return dateAndTimeArrive;
+	}
+	public void setDateAndTimeArrive(String dateAndTimeArrive) {
+		this.dateAndTimeArrive = dateAndTimeArrive;
+	}
+	public String getJustDepartureTime() {
+		return justDepartureTime;
+	}
+	public void setJustDepartureTime(String justDepartureTime) {
+		this.justDepartureTime = justDepartureTime;
 	}
 	
 	

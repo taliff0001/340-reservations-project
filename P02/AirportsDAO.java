@@ -1,6 +1,9 @@
 
 import java.util.ArrayList;
 
+//The only purpose of this class is to maintain separation between the
+//data retrieved from the DB and its access and use by the controller
+
 public class AirportsDAO {
 
 	private ArrayList<Airport> airports;

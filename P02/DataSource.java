@@ -1,6 +1,5 @@
 
 import java.sql.*;
-import java.util.Date;
 
 public class DataSource {
 
@@ -9,8 +8,9 @@ public class DataSource {
 	private TextIO textIO;
 	private static Connection conn;
 	private static volatile DataSource instance;
+	
 
-	private DataSource() {
+	private DataSource() {					// DataSource is able to print its error messages directly
 		textIO = TextIO.getInstance();
 	}
 
@@ -20,13 +20,10 @@ public class DataSource {
 		this.pass = args[1];
 
 		try {
-			conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
-			if (conn != null)
-				System.out.println("Got connection");
+			if (conn == null)
+				conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
 		} catch (SQLException e) {
 			System.out.println("Could not establish a connection to the database: " + e);
-		} finally {
-			//closeConn();
 		}
 	}
 
@@ -51,37 +48,46 @@ public class DataSource {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
-		}
+		} 
 	}
 
 	public AirportsDAO listAirports() {
-
-		// get all airports with select statement
+		
 		String airportsQuery = "SELECT * FROM Airports_MV";
 		AirportsDAO aDAO = null;
+		
 		try {
+			if (conn == null)
+				conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
+
 			Statement stmt = conn.createStatement();
 			ResultSet rset = stmt.executeQuery(airportsQuery);
 
-			aDAO = new AirportsDAO();
+			aDAO = new AirportsDAO(); 	// DAO is simply a container for passing a list of airports to the controller
 
-			while (rset.next()) {
+			while (rset.next()) {		// A new instance of the Airport class is created for each airport in the DB
+										// and added to a list in the DAO
 				aDAO.addAirport(
 						new Airport(rset.getString("airport_code"), rset.getString("city"), rset.getString("state")));
 			}
 
 		} catch (SQLException e) {
 			textIO.display("Could not retrieve airport list from the database: " + e);
-		}
+		} 
+		
 		return aDAO;
 	}
 
-	public Customer findCustomer(long custID) {
+	
+	public Customer findCustomer(long custID) { //If you don't understand this you should read the JDBC documentation
 
 		String custQuery = "SELECT * FROM Customers WHERE Cust_ID = ?";
 		Customer cust = null;
 
 		try {
+			if (conn == null)
+				conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
+				
 			PreparedStatement getCustomer = conn.prepareStatement(custQuery);
 			getCustomer.setLong(1, custID);
 			ResultSet rset = getCustomer.executeQuery();
@@ -91,29 +97,35 @@ public class DataSource {
 			}
 		} catch (SQLException e) {
 			textIO.display("Could not retrieve customer from the database: " + e);
-		}
+		} 
+		
 		return cust;
 	}
 
-	public FlightsDAO findDirectFlight(String depart, String arrive) {
+	public FlightsDAO findDirectFlight(String depart, String arrive) { // Same here
 
 		String flightsQuery = "SELECT * FROM Flight_Info_LV WHERE dep_airport = ? AND dest_airport = ? ";
 		FlightsDAO fDAO = null;
 
 		try {
+			if (conn == null)
+				conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
+			
 			PreparedStatement queryDirectFlights = conn.prepareStatement(flightsQuery);
 			queryDirectFlights.setString(1, depart);
 			queryDirectFlights.setString(2, arrive);
 			ResultSet rset = queryDirectFlights.executeQuery();
 			fDAO = new FlightsDAO();
-			while (rset.next()) {
+			while (rset.next()) {		// Like the Airports DAO, the ResultSet is iterated through and
+										// Flight objects are instantiated and added to a list
 				fDAO.addFlight(
 						new Flight(rset.getLong("FID"), rset.getString("dep_airport"), rset.getString("dest_airport"),
 								rset.getDate("dep_date"), rset.getDate("arrival_date"), rset.getShort("Open_Seats")));
 			}
 		} catch (SQLException e) {
 			textIO.display("Could not retrieve flight list from the database: " + e);
-		}
+		} 
+		
 		return fDAO;
 	}
 
@@ -123,17 +135,24 @@ public class DataSource {
 		Flight flight = null;
 
 		try {
+			if(conn == null)
+				conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
+			
 			PreparedStatement queryDirectFlights = conn.prepareStatement(flightsQuery);
 			queryDirectFlights.setLong(1, FID);
 			ResultSet rset = queryDirectFlights.executeQuery();
+			
 			if (rset.next()) {
 				flight = new Flight(rset.getLong("FID"), rset.getString("dep_airport"), rset.getString("dest_airport"),
 						rset.getDate("dep_date"), rset.getDate("arrival_date"), rset.getShort("Open_Seats"));
-				
+
 			}
+			
 		} catch (SQLException e) {
 			textIO.display("Could not retrieve flight list from the database: " + e);
-		}
+			
+		} 
+		
 		return flight;
 	}
 
@@ -141,8 +160,11 @@ public class DataSource {
 
 		Ticket ticket = null;
 		String ticketsQuery = "SELECT * FROM Tickets WHERE ticket_No = ?";
-		// Get Customer object
+		
 		try {
+			if(conn == null)
+				conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
+			
 			PreparedStatement queryTickets = conn.prepareStatement(ticketsQuery);
 			queryTickets.setLong(1, ticketNo);
 			ResultSet rset = queryTickets.executeQuery();
@@ -151,27 +173,35 @@ public class DataSource {
 			ticket.setCustID(rset.getLong("cust_id"));
 			ticket.setPurchaseDate(rset.getDate("purchase_date"));
 			ticket.setPrice(rset.getDouble("price"));
+			
 		} catch (SQLException e) {
 			textIO.display("Could not retrieve flight list from the database: " + e);
+			
 		}
+		
 		return ticket;
 	}
-	
-	public Legs getLegs(long ticketNo) { //All legs for a single ticket
+
+	public Legs getLegs(long ticketNo) {
 
 		Legs legs = null;
 		String legsQuery = "SELECT FID FROM Legs WHERE ticket_No = ?";
 		try {
+			if(conn == null)
+				conn = DriverManager.getConnection("jdbc:oracle:thin:@Worf.radford.edu:1521:itec3", user, pass);
+			
 			PreparedStatement queryLegs = conn.prepareStatement(legsQuery);
 			queryLegs.setLong(1, ticketNo);
 			ResultSet rset = queryLegs.executeQuery();
 			legs = new Legs(ticketNo);
-			while(rset.next()) {
+			while (rset.next()) {
 				legs.addFID(rset.getLong("FID"));
 			}
 		} catch (SQLException e) {
 			textIO.display("Could not retrieve flight list from the database: " + e);
-		}
+			
+		} 
+		
 		return legs;
 	}
 } // End class
