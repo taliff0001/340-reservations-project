@@ -69,9 +69,10 @@ CREATE TABLE Seats (
 CREATE TABLE Legs (
 	FID NUMBER,
 	ticket_no NUMBER,
-	seat_no NUMBER,
+	seat_no NUMBER NOT NULL,
 	CONSTRAINT FK_Legs_Flights FOREIGN KEY (FID) REFERENCES Flights (FID),
-	CONSTRAINT FK_Legs_Tickets FOREIGN KEY (ticket_no) REFERENCES Tickets (ticket_no),
+	CONSTRAINT FK_Legs_Tickets FOREIGN KEY (ticket_no) REFERENCES Tickets (ticket_no), 
+    CONSTRAINT FK_Legs_Seat FOREIGN KEY (seat_no) REFERENCES Seats (seat_no), 
 	CONSTRAINT PK_Legs PRIMARY KEY (FID, ticket_no)
 );
 
