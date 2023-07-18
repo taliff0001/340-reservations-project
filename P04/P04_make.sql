@@ -322,7 +322,7 @@ ticket_price IN tickets.price%type
             ROLLBACK;
                 
         WHEN seat_taken_ex THEN
-            DBMS_OUTPUT.PUT_LINE('SEAT TAKEN CHOOSE ANOTHER');
+            DBMS_OUTPUT.PUT_LINE('SEAT ' || seat_num || ' TAKEN CHOOSE ANOTHER');
             ROLLBACK;
             
         WHEN OTHERS THEN
@@ -349,13 +349,17 @@ after insert on tickets
 for each row
     declare
         flightnum flights.flight_no%type;
+        d_date flights.dep_date%TYPE;
         invalid_month EXCEPTION;
         PRAGMA EXCEPTION_INIT(invalid_month, -1843);
   begin
+  
+        select dep_date into d_date
+        from flights where flights.fid = (select fid from legs where ticket_no = :new.ticket_no);
         select flight_no into flightnum
         from flights where flights.fid = (select fid from legs where ticket_no = :new.ticket_no);
         insert into reservations_audit(audit_id, username, passenger_id, flight_num, departure_time, time_of_record)
-        values(audit_seq.nextval, 'FLT_RES', :new.cust_id, flightnum, :new.purchase_date, sysdate);
+        values(audit_seq.nextval, 'FLT_RES', :new.cust_id, flightnum, d_date, sysdate);
     EXCEPTION
         WHEN invalid_month THEN
             DBMS_OUTPUT.PUT_LINE('AUDIT TRIGGER ERROR/INVALID MONTH');
