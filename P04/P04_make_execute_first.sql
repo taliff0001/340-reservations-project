@@ -37,7 +37,7 @@ flight_no CHARACTER(6),
 dep_date DATE,
 dep_airport CHAR(3),
 arrival_date DATE,
-dest_airport CHAR(3)
+dest_airport CHAR(3),
 cost NUMBER(8,2)
 );
 
@@ -55,7 +55,7 @@ CREATE TABLE Tickets (
     cust_ID NUMBER NOT NULL,
     purchase_date DATE,
     price NUMBER(10,2),
-    purchase_day VARCHAR2(10) GENERATED ALWAYS AS (TO_CHAR(purchase_date, 'MM-DD-YYYY'))
+    purchase_day AS (TO_CHAR(purchase_date, 'DD-MM-YYYY'))
 );
 
 CREATE TABLE Legs (
@@ -231,41 +231,44 @@ CREATE OR REPLACE PROCEDURE add_seats
        END IF;
        
      END LOOP;
-
+     
+     COMMIT;
+     
 EXCEPTION
 
  WHEN OTHERS THEN
-  dbms_output.put_line('ERROR:   ' || sqlerrm);
+  dbms_output.put_line('ERROR/ADD_SEATS:   ' || sqlerrm);
 
 END add_seats;
 /
 
 
 create or replace function find_open_seat
-(flightID IN NUMBER)
-RETURN NUMBER
+(flightID IN NUMBER) RETURN NUMBER
 
-IS
+    IS
 
 num_rows Number;
 return_seat_no NUMBER;
 
 BEGIN
 
-SELECT COUNT(*) INTO num_rows FROM seats
-WHERE FID = flightID;
+ SELECT COUNT(*) INTO num_rows FROM seats
+ WHERE FID = flightID;
 
-IF num_rows > 0 THEN
-SELECT MIN(seat_no) INTO return_seat_no FROM seats
-WHERE FID = flightID;
-RETURN return_seat_no;
-ELSE
+ IF num_rows > 0 THEN
+  SELECT MIN(seat_no) INTO return_seat_no FROM seats
+  WHERE FID = flightID;
+  RETURN return_seat_no;
+ ELSE
     return -1;
-END IF;
+ END IF;
+ 
 EXCEPTION
     WHEN OTHERS THEN
-     DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
-END;
+     DBMS_OUTPUT.PUT_LINE('ERROR/FIND_OPEN_SEAT ' || SQLERRM);
+     
+END find_open_seat;
 /
 
 
@@ -276,11 +279,18 @@ FlightID IN flights.fid%type,
 seat_num IN legs.seat_no%type,
 ticket_price IN tickets.price%type
 ) is
+    insufficient_funds EXCEPTION;
+    PRAGMA EXCEPTION_INIT (insufficient_funds, -02290);
+
     seat_taken_ex EXCEPTION;
     PRAGMA EXCEPTION_INIT (seat_taken_ex, -999999);
     seat_taken BOOLEAN := TRUE;
-    
-    begin
+      
+    BEGIN
+
+        UPDATE customers
+        SET balance = balance - ticket_price
+        WHERE cust_id = cust_num;
         
         FOR seat IN (select seat_no from seats
             where FID = FlightID) LOOP
@@ -300,19 +310,26 @@ ticket_price IN tickets.price%type
         insert into tickets(ticket_no, cust_id, purchase_date, price)
         values(ticket_seq.currval, cust_num, sysdate, ticket_price);
 
-        commit;
+        COMMIT;
+        
+        DBMS_OUTPUT.PUT_LINE('Reservation completed successfully');
 
 
     EXCEPTION
+    
+        WHEN insufficient_funds THEN
+            DBMS_OUTPUT.PUT_LINE('INSUFFICIENT FUNDS TO RESERVE FLIGHT');
+            ROLLBACK;
+                
         WHEN seat_taken_ex THEN
+            DBMS_OUTPUT.PUT_LINE('SEAT TAKEN CHOOSE ANOTHER');
             ROLLBACK;
-                DBMS_OUTPUT.PUT_LINE('Seat taken');
-                RAISE;
+            
         WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE_FLIGHT: ' || SQLERRM);
             ROLLBACK;
-                DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
-                RAISE;
-    end;
+            
+    END reserve_flight;
     /
 
 
@@ -323,7 +340,7 @@ create or replace procedure fst -- test procedure for find_open_seat
 begin
     seat_var := find_open_seat(flightID);
     DBMS_output.put_line('FUNCTION RETURNED:  ' || seat_var);
-End;
+END;
 /
 
 
@@ -331,46 +348,100 @@ create or replace trigger reservation_audit_trig
 after insert on tickets
 for each row
     declare
-        flight_num flights.flight_no%type;
+        flightnum flights.flight_no%type;
+        invalid_month EXCEPTION;
+        PRAGMA EXCEPTION_INIT(invalid_month, -1843);
   begin
-        select flight_no into flight_num
+        select flight_no into flightnum
         from flights where flights.fid = (select fid from legs where ticket_no = :new.ticket_no);
         insert into reservations_audit(audit_id, username, passenger_id, flight_num, departure_time, time_of_record)
-        values(audit_seq.nextval, 'FLT_RES', :new.cust_id, flight_num, :new.purchase_day, sysdate);
+        values(audit_seq.nextval, 'FLT_RES', :new.cust_id, flightnum, :new.purchase_date, sysdate);
     EXCEPTION
+        WHEN invalid_month THEN
+            DBMS_OUTPUT.PUT_LINE('AUDIT TRIGGER ERROR/INVALID MONTH');
         WHEN OTHERS THEN
-            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
-        end;
+            DBMS_OUTPUT.PUT_LINE('AUDIT TRIGGER ERROR: ' || SQLERRM);
+    
+    END Reservation_Audit_Trig;
     /
     
-CREATE OR REPLACE PROCEDURE schedule_flight
- (
-  d_date IN DATE,
-  d_airport IN CHAR,
-  a_date IN DATE,
-  a_airport IN CHAR,
-  rows IN NUMBER,
-  seats_per IN NUMBER
- )
- IS  
-  random_flight_no VARCHAR2(6) := round(dbms_random.value(100000,999999));
-  
- BEGIN
+    
+    
+    
+    
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+                -- FLIGHT SCHEDULING --
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+
+     CREATE OR REPLACE PROCEDURE schedule_flight_all_params
+     (
+      Fl_ID IN Flights.FID%TYPE,
+      Fl_No IN Flights.Flight_No%TYPE,
+      d_date IN Flights.Dep_Date%TYPE,
+      d_airport IN Flights.Dep_Airport%TYPE,
+      a_date IN Flights.Arrival_Date%TYPE,
+      a_airport IN Flights.Dest_Airport%TYPE,
+      rows IN Seats.Row_Number%TYPE,
+      seats_per IN Seats.Seat_No%TYPE,
+      price IN Flights.cost%TYPE
+     )
+            IS  
+
+      BEGIN
+
+       INSERT INTO Flights (FID, flight_no,
+       dep_date, dep_airport, arrival_date, dest_airport, cost)
+
+       VALUES (FL_ID, FL_No, d_date, d_airport, a_date, a_airport, price);
+
+       add_seats(FL_ID, rows, seats_per);
+
+       COMMIT;
+
+       EXCEPTION
+
+        WHEN OTHERS THEN
+         DBMS_OUTPUT.PUT_LINE('ERROR/SCHEDULE_FLIGHT:  ' || sqlerrm);
+         ROLLBACK;
+
+      END Schedule_Flight_all_params;
+      /
+      
+
+
+     CREATE OR REPLACE PROCEDURE schedule_flight
+     (
+      d_date IN Flights.Dep_Date%TYPE,
+      d_airport IN Flights.Dep_Airport%TYPE,
+      a_date IN Flights.Arrival_Date%TYPE,
+      a_airport IN Flights.Dest_Airport%TYPE,
+      rows IN Seats.Row_Number%TYPE,
+      seats_per IN Seats.Seat_No%TYPE,
+      price IN Flights.cost%TYPE
+     )
  
-  INSERT INTO Flights (FID, flight_no, dep_date, dep_airport, arrival_date, dest_airport)
-  VALUES (fid_seq.NEXTVAL, random_flight_no, d_date, d_airport, a_date, a_airport);
-  
-  add_seats(fid_seq.currval, rows, seats_per);
-  
-  COMMIT;
-  
-  EXCEPTION
-  
-  WHEN OTHERS THEN
-  DBMS_OUTPUT.PUT_LINE('ERROR:  ' || sqlerrm);
-  ROLLBACK;
-  
-END;
-  /
-  
-commit;
+        IS
+    
+      random_flight_no VARCHAR2(6) :=
+      round(dbms_random.value(100000,999999));
+
+      BEGIN
+
+       schedule_flight_all_params
+        (
+         fid_seq.NEXTVAL, random_flight_no, d_date,
+         d_airport, a_date, a_airport, rows, seats_per, price
+        );
+        COMMIT;
+        
+        EXCEPTION
+        
+         WHEN OTHERS THEN
+         DBMS_OUTPUT.PUT_LINE('ERROR/SCHEDULE_FLIGHT:  ' || sqlerrm);
+         ROLLBACK;
+        
+       END;
+       /
+
+    COMMIT;
