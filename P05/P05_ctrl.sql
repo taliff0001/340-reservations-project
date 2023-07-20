@@ -3,13 +3,13 @@ set serveroutput on
 prompt "Drop/Load main schema"
 /
 
-@P04_make.sql
+@P05_make.sql
 /
 
 prompt "Drop/Load Control Procedures"
 /
 
-@P04_cmd.sql
+@P05_cmd.sql
 /
 
 
@@ -18,7 +18,7 @@ prompt "Drop/Load Control Procedures"
 prompt "Load Airports / Customer / Flight"
 /
 
-@P04_common.sql
+@P05_common.sql
 
 
 /*
@@ -86,5 +86,33 @@ COMMIT;
 exec cmd(1,6); <-- Rows to execute
 
 select * from reservations_audit; <-- Display audit results
+
+
+--------------------------------------------------------------------
+P05 Test Values
+--------------------------------------------------------------------
+
+insert into airports values ('RIC', 'Richmond', 'VA');
+insert into airports values ('BWI', 'Baltimore', 'MD');
+insert into airports values ('MDT', 'Harrisburg', 'PA');
+insert into airports values ('CVG', 'Cincinnatti', 'OH');
+insert into airports values ('DFW', 'Dallas', 'TX');
+insert into airports values ('SNA', 'Orange County', 'CA');
+insert into airports values ('LAX', 'Los Angeles', 'CA');
+insert into airports values ('LAS', 'Las Vegas', 'NV');
+
+
+INSERT INTO Command (cmd_id, cmd) VALUES (7, 'scd');
+INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5, p6, p7)
+VALUES (7, 1, '1002', '8930', '8/1/2023', 'RIC', '9/1/2023', 'MDT', '325');
+
+INSERT INTO Command (cmd_id, cmd) VALUES (8, 'scd');
+INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5, p6, p7)
+VALUES (8, 1, '1003', '6928', '8/1/2023', 'MDT', '8/1/2023', 'CVG', '250');
+
+COMMIT;
+
+
+
 
 */

@@ -54,8 +54,7 @@ CREATE TABLE Seats (
     row_number NUMBER(3),
     seat CHAR(1),
     seat_loc CHAR(3),
-    CONSTRAINT PK_Seats PRIMARY KEY (seat_no),
-    CONSTRAINT UQ_Seats UNIQUE (seat_no, FID),
+    CONSTRAINT PK_Seats PRIMARY KEY (seat_no, FID),
     CONSTRAINT FK_Seats_FID FOREIGN KEY (FID) REFERENCES Flights (FID)
 );
 
@@ -204,7 +203,7 @@ EXCEPTION
 END add_seats;
 /
 
-
+/*
 create or replace function find_open_seat
 (flightID IN NUMBER) RETURN NUMBER
 
@@ -229,9 +228,89 @@ BEGIN
 EXCEPTION
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('ERROR/FIND_OPEN_SEAT ' || SQLERRM);
+        RETURN -1;
 
 END find_open_seat;
 /
+*/
+CREATE OR REPLACE PACKAGE find_yo_seats AS
+
+    TYPE seats_holder IS RECORD
+        (
+         FID SMALLINT,
+         Seat_no SMALLINT
+        );
+
+
+    TYPE mo_seats_holder IS VARRAY(3) OF seats_holder;
+
+
+    FUNCTION find_open_seat(flightID IN NUMBER) RETURN NUMBER;
+    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER) RETURN mo_seats_holder;
+    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER, flightID_3 IN NUMBER) RETURN mo_seats_holder;
+END find_yo_seats;
+/
+
+CREATE OR REPLACE PACKAGE BODY find_yo_seats AS
+    -- Original function find_open_seat
+    FUNCTION find_open_seat(flightID IN NUMBER) RETURN NUMBER IS
+        num_rows Number;
+        return_seat_no NUMBER;
+    BEGIN
+        SELECT COUNT(*) INTO num_rows FROM seats
+        WHERE FID = flightID;
+        IF num_rows > 0 THEN
+            SELECT MIN(seat_no) INTO return_seat_no FROM seats
+            WHERE FID = flightID;
+            RETURN return_seat_no;
+        ELSE
+            return -1;
+        END IF;
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('ERROR/FIND_OPEN_SEAT ' || SQLERRM);
+            RETURN -1;
+    END find_open_seat;
+
+    -- Function find_mo_seats with two flight IDs
+    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER) RETURN mo_seats_holder IS
+        seats_varray mo_seats_holder := mo_seats_holder();
+    BEGIN
+        seats_varray.extend;
+        seats_varray(1).FID := flightID_1;
+        seats_varray(1).Seat_no := find_open_seat(flightID_1);
+        seats_varray.extend;
+        seats_varray(2).FID := flightID_2;
+        seats_varray(2).Seat_no := find_open_seat(flightID_2);
+        RETURN seats_varray;
+    END find_mo_seats;
+
+    -- Overloaded function find_mo_seats with three flight IDs
+    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER, flightID_3 IN NUMBER) RETURN mo_seats_holder IS
+        seats_varray mo_seats_holder := mo_seats_holder();
+    BEGIN
+        seats_varray.extend;
+        seats_varray(1).FID := flightID_1;
+        seats_varray(1).Seat_no := find_open_seat(flightID_1);
+        seats_varray.extend;
+        seats_varray(2).FID := flightID_2;
+        seats_varray(2).Seat_no := find_open_seat(flightID_2);
+        seats_varray.extend;
+        seats_varray(3).FID := flightID_3;
+        seats_varray(3).Seat_no := find_open_seat(flightID_3);
+        RETURN seats_varray;
+    END find_mo_seats;
+
+END find_yo_seats;
+/
+
+
+
+
+
+
+
+
 
 
 create or replace procedure reserve_flight
@@ -263,14 +342,14 @@ BEGIN
 
     IF seat_taken = TRUE THEN RAISE seat_taken_ex; END IF;
 
-    insert into legs(FID, ticket_no,seat_no)
-    values(FlightID, ticket_seq.nextval,seat_num);
+    insert into tickets(ticket_no, cust_id, purchase_date, price)
+    values(ticket_seq.nextval, cust_num, sysdate, ticket_price);
 
     DELETE FROM seats
     WHERE seat_no = seat_num;
 
-    insert into tickets(ticket_no, cust_id, purchase_date, price)
-    values(ticket_seq.currval, cust_num, sysdate, ticket_price);
+    insert into legs(FID, ticket_no,seat_no)
+    values(FlightID, ticket_seq.currval,seat_num);
 
     COMMIT;
 
@@ -317,9 +396,9 @@ declare
 begin
 
     select dep_date into d_date
-    from flights where flights.fid = (select fid from legs where ticket_no = :new.ticket_no);
+    from flights where flights.fid = (select fid from tickets where ticket_no = :new.ticket_no);
     select flight_no into flightnum
-    from flights where flights.fid = (select fid from legs where ticket_no = :new.ticket_no);
+    from flights where flights.fid = (select fid from tickets where ticket_no = :new.ticket_no);
     insert into reservations_audit(audit_id, username, passenger_id, flight_num, departure_time, time_of_record)
     values(audit_seq.nextval, 'FLT_RES', :new.cust_id, flightnum, d_date, sysdate);
 EXCEPTION
