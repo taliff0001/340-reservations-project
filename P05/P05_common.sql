@@ -68,4 +68,10 @@ INSERT INTO Command (cmd_id, cmd) VALUES (9, 'add');
 INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5)
 VALUES (9, 1, 'customer', '101', 'Notorious', 'B.I.G.', '1100');
 
+insert into customers values(103,'N','Sync', 2000);
+insert into customers values(104,'The','Cheese', 2000);
+insert into customers values(105,'Angular','JS', 2000);
+insert into customers values(106,'Kill','Yourself', 2000);
+insert into customers values(107,'Lauryn','Hill', 2000);
+
 COMMIT;
