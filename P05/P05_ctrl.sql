@@ -1,20 +1,28 @@
 set serveroutput on
 
+set echo on
+
+set pages 50000 lines 120
+
 prompt "Drop/Load main schema"
 /
 
-@P05_make_07_20.sql
+@P05a.sql
 /
 -- Load Data Common To Test Cases
-
-prompt "Load Test Data"
-/
-
-@P05_common.sql
 
 prompt "Drop/Load Control Procedures"
 /
 
-@P05_cmd.sql
+@P05b.sql
 /
 
+
+prompt "Load Test Data"
+/
+
+@P05c.sql
+
+
+
+prompt "End ctrl"

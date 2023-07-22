@@ -82,11 +82,10 @@ CREATE TABLE reservations_audit (
                                     audit_id NUMBER,
                                     username VARCHAR2(15),
                                     passenger_id NUMBER,
-                                    flight_num CHAR(6),
-                                    departure_time DATE,
+                                    ticket_no NUMBER,
                                     time_of_record DATE,
-                                    CONSTRAINT PK_reservations_audit PRIMARY KEY (audit_id),
-                                    CONSTRAINT FK_audit_passID FOREIGN KEY (passenger_id) REFERENCES Customers (cust_ID)
+                                    CONSTRAINT FK_audit_passID FOREIGN KEY (passenger_id) REFERENCES Customers (cust_ID),
+                                    CONSTRAINT FK_audit_ticket_no FOREIGN KEY (ticket_no) REFERENCES Tickets (ticket_no)
 );
 
 
@@ -203,36 +202,6 @@ EXCEPTION
 END add_seats;
 /
 
-/*
-create or replace function find_open_seat
-(flightID IN NUMBER) RETURN NUMBER
-
-    IS
-
-    num_rows Number;
-    return_seat_no NUMBER;
-
-BEGIN
-
-    SELECT COUNT(*) INTO num_rows FROM seats
-    WHERE FID = flightID;
-
-    IF num_rows > 0 THEN
-        SELECT MIN(seat_no) INTO return_seat_no FROM seats
-        WHERE FID = flightID;
-        RETURN return_seat_no;
-    ELSE
-        return -1;
-    END IF;
-
-EXCEPTION
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('ERROR/FIND_OPEN_SEAT ' || SQLERRM);
-        RETURN -1;
-
-END find_open_seat;
-/
-*/
 
 CREATE OR REPLACE PROCEDURE debit_cust_acct
 (
@@ -255,7 +224,7 @@ EXCEPTION
 END debit_cust_acct;
 /
 --------------------------------------------------------------------
--- BEGIN RESERVATIONS PACKAGE --
+-- BEGIN PACKAGE DEF / RESERVE --
 --------------------------------------------------------------------
 
 CREATE OR REPLACE PACKAGE reserve AS
@@ -288,41 +257,34 @@ CREATE OR REPLACE PACKAGE reserve AS
     )
         RETURN flights.cost%TYPE;
 
-END reserve;
-/
-
-CREATE OR REPLACE PACKAGE reserve AS
-    -- Record type for holding seat info
-    TYPE seats_holder IS RECORD
-                         (
-                             FID SMALLINT,
-                             Seat_no SMALLINT
-                         );
-    -- Varray type for holding multiple seats
-    TYPE mo_seats_holder IS VARRAY(3) OF seats_holder;
-
-    -- Function to find open seat
-    FUNCTION find_open_seat(flightID IN NUMBER) RETURN NUMBER;
-
-    FUNCTION find_mo_seats(flightID_1 IN NUMBER) RETURN mo_seats_holder;
-    -- Functions for finding multiple open seats --
-    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER) RETURN mo_seats_holder;
-    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER, flightID_3 IN NUMBER) RETURN mo_seats_holder;
-
-    PROCEDURE res_flight(seats_varray mo_seats_holder, cust_num customers.cust_id%TYPE);
-
-    PROCEDURE debit_cust_acct (cust_num IN customers.cust_id%type, ticket_price IN tickets.price%type);
-
-    FUNCTION get_flights_cost
+    PROCEDURE reserve_em
     (
-        FID1 IN flights.FID%TYPE DEFAULT -1,
-        FID2 IN flights.FID%TYPE DEFAULT -1,
-        FID3 IN flights.FID%TYPE DEFAULT -1
-    )
-        RETURN flights.cost%TYPE;
+        FID1 IN flights.FID%TYPE,
+        FID2 IN flights.FID%TYPE,
+        FID3 IN flights.FID%TYPE,
+        cust_num IN customers.cust_id%TYPE
+    );
+    PROCEDURE reserve_em
+    (
+        FID1 IN flights.FID%TYPE,
+        FID2 IN flights.FID%TYPE,
+        cust_num IN customers.cust_id%TYPE
+    );
+    PROCEDURE reserve_em
+    (
+        FID1 IN flights.FID%TYPE,
+        cust_num IN customers.cust_id%TYPE
+    );
+
+
+
 
 END reserve;
 /
+
+--------------------------------------------------------------------
+-- BEGIN PACKAGE BODY / RESERVE --
+--------------------------------------------------------------------
 
 CREATE OR REPLACE PACKAGE BODY reserve AS
 
@@ -333,45 +295,57 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
     ) is
         insufficient_funds EXCEPTION;
         PRAGMA EXCEPTION_INIT (insufficient_funds, -02290);
+
     BEGIN
+
         UPDATE customers
         SET balance = balance - ticket_price
         WHERE cust_id = cust_num;
+
     EXCEPTION
         WHEN insufficient_funds THEN
             DBMS_OUTPUT.PUT_LINE('INSUFFICIENT FUNDS TO RESERVE FLIGHT');
             RAISE;
+
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('ERROR/DEBIT_CUST_ACCT: ' || SQLERRM  || DBMS_UTILITY.FORMAT_CALL_STACK());
             RAISE;
+
     END debit_cust_acct;
 
 --------------------------------------------------------------------
     -- SEAT FINDING FUNCTIONS --
 --------------------------------------------------------------------
 
-    -- Original function find_open_seat
+-- Original function find_open_seat
     FUNCTION find_open_seat(flightID IN NUMBER) RETURN NUMBER IS
         num_rows Number;
         return_seat_no NUMBER;
+
     BEGIN
+
         SELECT COUNT(*) INTO num_rows FROM seats
         WHERE FID = flightID;
         IF num_rows > 0 THEN
             SELECT MIN(seat_no) INTO return_seat_no FROM seats
             WHERE FID = flightID;
             RETURN return_seat_no;
+
         ELSE
             return -1;
+
         END IF;
 
     EXCEPTION
+
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('ERROR/FIND_OPEN_SEAT ' || SQLERRM || DBMS_UTILITY.FORMAT_CALL_STACK());
             RETURN -1;
+
     END find_open_seat;
 
-    -- find_mo_seats that only takes one flight ID
+-- Find_mo_seats that takes a single FID --
+
     FUNCTION find_mo_seats(flightID_1 IN NUMBER) RETURN mo_seats_holder IS
         seats_varray mo_seats_holder := mo_seats_holder();
     BEGIN
@@ -388,9 +362,11 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
 
     END find_mo_seats;
 
-    -- Overloaded find_mo_seats with two flight IDs
-    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER) RETURN mo_seats_holder IS
+-- Overloaded find_mo_seats with two flight IDs --
+
+    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER)  RETURN mo_seats_holder IS
         seats_varray mo_seats_holder := mo_seats_holder();
+
     BEGIN
         seats_varray.extend;
         seats_varray(1).FID := flightID_1;
@@ -399,6 +375,7 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
         seats_varray(2).FID := flightID_2;
         seats_varray(2).Seat_no := find_open_seat(flightID_2);
         RETURN seats_varray;
+
     EXCEPTION
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('ERROR/FIND_MO_SEATS V2' || SQLERRM || DBMS_UTILITY.FORMAT_CALL_STACK());
@@ -406,9 +383,12 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
 
     END find_mo_seats;
 
-    -- Overloaded find_mo_seats with three flight IDs
-    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER, flightID_3 IN NUMBER) RETURN mo_seats_holder IS
+    -- Overloaded find_mo_seats with three flight IDs --
+
+    FUNCTION find_mo_seats(flightID_1 IN NUMBER, flightID_2 IN NUMBER,  flightID_3 IN NUMBER) RETURN mo_seats_holder
+        IS
         seats_varray mo_seats_holder := mo_seats_holder();
+
     BEGIN
         seats_varray.extend;
         seats_varray(1).FID := flightID_1;
@@ -421,6 +401,7 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
         seats_varray(3).Seat_no := find_open_seat(flightID_3);
         RETURN seats_varray;
     EXCEPTION
+
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('ERROR/FIND_MO_SEATS V2' || SQLERRM || DBMS_UTILITY.FORMAT_CALL_STACK());
             RETURN seats_varray;
@@ -451,16 +432,19 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
     BEGIN
 
         CASE
+
             WHEN FID2 = -1 AND FID3 = -1 THEN
                 SELECT cost INTO cost1 FROM flights
                 WHERE FID = FID1;
                 total_cost := cost1;
+
             WHEN FID3 = -1 THEN
                 SELECT cost INTO cost1 FROM flights
                 WHERE FID = FID1;
                 SELECT cost INTO cost2 FROM flights
                 WHERE FID = FID2;
                 total_cost := cost1 + cost2;
+
             ELSE
                 SELECT cost INTO cost1 FROM flights
                 WHERE FID = FID1;
@@ -469,6 +453,7 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
                 SELECT cost INTO cost3 FROM flights
                 WHERE FID = FID3;
                 total_cost := cost1 + cost2 + cost3;
+
             END CASE;
 
         -- probably unnecessary
@@ -477,235 +462,220 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
         END IF;
 
         DBMS_OUTPUT.PUT_LINE('TOTAL COST: '|| total_cost);
+
         RETURN total_cost;
 
     EXCEPTION
+
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('PROBLEM GETTING TICKET COST: '||SQLCODE||' '||SQLERRM );
-            DBMS_OUTPUT.PUT_LINE(DBMS_UTILITY.FORMAT_CALL_STACK());
-            RETURN -1;
+            DBMS_OUTPUT.PUT_LINE(DBMS_UTILITY.FORMAT_CALL_STACK());     RETURN -1;
     END;
-
-
 
 --------------------------------------------------------------------
     -- RESERVE FLIGHT - ONE TO THREE LEGS --
 --------------------------------------------------------------------
 
     PROCEDURE res_flight(seats_varray mo_seats_holder, cust_num customers.cust_id%TYPE)
-
         IS
-
         ticket_price flights.cost%TYPE;
         ticket_num tickets.ticket_no%TYPE;
 
     BEGIN
+
         ticket_num := ticket_seq.nextval;
         insert into tickets(ticket_no, cust_id, purchase_date)
         values(ticket_num, cust_num, sysdate);
 
-        -- DBMS_OUTPUT.PUT_LINE('COUNT: ' || seats_varray.COUNT);
-
         CASE
+
             WHEN seats_varray.COUNT = 1 THEN -- ONE LEG
+
             ticket_price := get_flights_cost(seats_varray(1).FID);
+
             DELETE FROM seats
             WHERE FID = seats_varray(1).FID
               AND seat_no = seats_varray(1).seat_no;
-            insert into legs(FID, ticket_no,seat_no)
-            values(seats_varray(1).FID, ticket_num, seats_varray(1).seat_no);
+
+            INSERT INTO legs(FID, ticket_no,seat_no)
+            VALUES (seats_varray(1).FID, ticket_num, seats_varray(1).seat_no);
 
             WHEN seats_varray.COUNT = 2 THEN -- TWO LEGS
+
             ticket_price := get_flights_cost
+
                 (seats_varray(1).FID,seats_varray(2).FID);
             DELETE FROM seats
             WHERE FID = seats_varray(1).FID
               AND seat_no = seats_varray(1).seat_no;
-            insert into legs(FID, ticket_no,seat_no)
-            values(seats_varray(1).FID, ticket_num, seats_varray(1).seat_no);
+
+            INSERT INTO legs(FID, ticket_no,seat_no)
+            VALUES (seats_varray(1).FID, ticket_num, seats_varray(1).seat_no);
 
             DELETE FROM seats
             WHERE FID = seats_varray(2).FID
               AND seat_no = seats_varray(2).seat_no;
-            insert into legs(FID, ticket_no,seat_no)
-            values(seats_varray(2).FID, ticket_num, seats_varray(2).seat_no);
+
+            INSERT INTO legs(FID, ticket_no,seat_no)
+            VALUES (seats_varray(2).FID, ticket_num, seats_varray(2).seat_no);
 
             ELSE -- THREE LEGS
+
             ticket_price := get_flights_cost(seats_varray(1).FID,
                                              seats_varray(2).FID, seats_varray(3).FID);
+
             DELETE FROM seats
             WHERE FID = seats_varray(1).FID
               AND seat_no = seats_varray(1).seat_no;
-            insert into legs(FID, ticket_no,seat_no)
-            values(seats_varray(1).FID, ticket_num, seats_varray(1).seat_no);
+
+            INSERT INTO legs(FID, ticket_no,seat_no)
+            VALUES (seats_varray(1).FID, ticket_num, seats_varray(1).seat_no);
 
             DELETE FROM seats
             WHERE FID = seats_varray(2).FID
               AND seat_no = seats_varray(2).seat_no;
-            insert into legs(FID, ticket_no,seat_no)
-            values(seats_varray(2).FID, ticket_num,seats_varray(2).seat_no);
+
+            INSERT INTO legs(FID, ticket_no,seat_no)
+            VALUES(seats_varray(2).FID, ticket_num,seats_varray(2).seat_no);
 
             DELETE FROM seats
             WHERE FID = seats_varray(3).FID
               AND seat_no = seats_varray(3).seat_no;
-            insert into legs(FID, ticket_no,seat_no)
-            values(seats_varray(3).FID, ticket_num, seats_varray(3).seat_no);
+
+            INSERT INTO legs(FID, ticket_no,seat_no)
+            VALUES (seats_varray(3).FID, ticket_num, seats_varray(3).seat_no);
 
             END CASE;
 
-        UPDATE tickets SET price = ticket_price WHERE tickets.ticket_no = ticket_num;
+        UPDATE tickets SET price = ticket_price WHERE tickets.ticket_no =   ticket_num;
+
         debit_cust_acct(cust_num, ticket_price);
 
         DBMS_OUTPUT.PUT_LINE('FOUND ' || seats_varray.COUNT || ' SEATS');
 
     EXCEPTION
+
         WHEN OTHERS THEN
+            ROLLBACK;
             DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE_FLIGHT:  ' || SQLERRM);
     END;
-END reserve;
-/
-
-COMMIT;
 
 --------------------------------------------------------------------
--- END RESERVATIONS PACKAGE --
+    -- RESERVE THEM JANKS --
 --------------------------------------------------------------------
 
-    CREATE OR REPLACE PROCEDURE reserve_em
-(
-    FID1 IN flights.FID%TYPE,
-    FID2 IN flights.FID%TYPE,
-    FID3 IN flights.FID%TYPE,
-    cust_num customers.cust_id%TYPE
-)
+    PROCEDURE reserve_em
+    (
+        FID1 IN flights.FID%TYPE,
+        FID2 IN flights.FID%TYPE,
+        FID3 IN flights.FID%TYPE,
+        cust_num IN customers.cust_id%TYPE
+    )
         IS
 
-    seats_varray reserve.mo_seats_holder;
+        seats_varray reserve.mo_seats_holder;
+        invalid_parameter EXCEPTION;
+        PRAGMA EXCEPTION_INIT (invalid_parameter, -02290);
 
     BEGIN
+        CASE
+            WHEN FID1 + FID2 + FID3 = -3 THEN
+                RAISE invalid_parameter;
+            ELSE
+                NULL;
+
+            END CASE;
 
         CASE
 
-        WHEN FID2 = -1 AND FID3 = -1 THEN
-            seats_varray := reserve.find_mo_seats(FID1);
-        WHEN FID3 = -1 THEN
-            seats_varray := reserve.find_mo_seats(FID1, FID2);
-        ELSE
-            seats_varray := reserve.find_mo_seats(FID1, FID2, FID3);
-        END CASE;
+            WHEN FID2 = -1 AND FID3 = -1 THEN
+                seats_varray := find_mo_seats(FID1);
+            WHEN FID3 = -1 THEN
+                seats_varray := find_mo_seats(FID1, FID2);
+            ELSE
+                seats_varray := find_mo_seats(FID1, FID2, FID3);
 
-    reserve.res_flight(seats_varray, cust_num);
+            END CASE;
 
-    COMMIT;
+        res_flight(seats_varray, cust_num);
 
-    DBMS_OUTPUT.PUT_LINE('RESERVATION SUCCESSFUL');
-EXCEPTION
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('Error: '||SQLCODE||' '||SQLERRM);
-        ROLLBACK;
-END;
+        COMMIT;
+
+    EXCEPTION
+
+        WHEN invalid_parameter THEN
+            DBMS_OUTPUT.PUT_LINE('INVALID PARAMETERS TO RESERVE_EM');
+
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE_EM: '||SQLCODE||' '||SQLERRM);
+            ROLLBACK;
+    END reserve_em;
+
+-- Overloaded -- Two Flights --
+
+    PROCEDURE reserve_em
+    (
+        FID1 IN flights.FID%TYPE,
+        FID2 IN flights.FID%TYPE,
+        cust_num IN customers.cust_id%TYPE
+    )
+        IS
+    BEGIN
+        reserve_em(FID1,FID2, -1, cust_num);
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE_EM: '||SQLCODE||' '||SQLERRM);
+            ROLLBACK;
+    END;
+
+-- Overloaded -- One Flight --
+
+    PROCEDURE reserve_em
+    (
+        FID1 IN flights.FID%TYPE,
+        cust_num IN customers.cust_id%TYPE
+    )
+        IS
+    BEGIN
+        reserve_em(FID1,-1, -1, cust_num);
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE_EM: '||SQLCODE||' '||SQLERRM);
+            ROLLBACK;
+    END;
+
+END reserve;
 /
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- END RESERVATIONS PKG --
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 COMMIT;
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- OLD/P04 RESERVE FLIGHT --
+-- AUDIT TRIGGER --
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-create or replace procedure reserve_flight
-(
-    cust_num IN customers.cust_id%type,
-    FlightID IN flights.fid%type,
-    seat_num IN legs.seat_no%type,
-    ticket_price IN tickets.price%type
-) is
-    insufficient_funds EXCEPTION;
-    PRAGMA EXCEPTION_INIT (insufficient_funds, -02290);
-
-    seat_taken_ex EXCEPTION;
-    PRAGMA EXCEPTION_INIT (seat_taken_ex, -999999);
-    seat_taken BOOLEAN := TRUE;
-
-BEGIN
-
-    UPDATE customers
-    SET balance = balance - ticket_price
-    WHERE cust_id = cust_num;
-
-    FOR seat IN (select seat_no from seats
-                 where FID = FlightID) LOOP
-            IF seat.seat_no = seat_num THEN
-                seat_taken := FALSE;
-            END IF;
-        END LOOP;
-
-    IF seat_taken = TRUE THEN RAISE seat_taken_ex; END IF;
-
-    insert into tickets(ticket_no, cust_id, purchase_date, price)
-    values(ticket_seq.nextval, cust_num, sysdate, ticket_price);
-
-    DELETE FROM seats
-    WHERE seat_no = seat_num;
-
-    insert into legs(FID, ticket_no,seat_no)
-    values(FlightID, ticket_seq.currval,seat_num);
-
-    COMMIT;
-
-    DBMS_OUTPUT.PUT_LINE('Reservation completed successfully');
-
-EXCEPTION
-
-    WHEN insufficient_funds THEN
-        DBMS_OUTPUT.PUT_LINE('INSUFFICIENT FUNDS TO RESERVE FLIGHT');
-        ROLLBACK;
-
-    WHEN seat_taken_ex THEN
-        DBMS_OUTPUT.PUT_LINE('SEAT ' || seat_num || ' TAKEN CHOOSE ANOTHER');
-        ROLLBACK;
-
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE_FLIGHT: ' || SQLERRM);
-        ROLLBACK;
-
-END reserve_flight;
-/
-
-/*
 create or replace trigger reservation_audit_trig
     after insert on tickets
     for each row
-declare
-    flightnum flights.flight_no%type;
-    d_date flights.dep_date%TYPE;
-    invalid_month EXCEPTION;
-    PRAGMA EXCEPTION_INIT(invalid_month, -1843);
+
 begin
 
-    select dep_date into d_date
-    from flights where flights.fid = (select fid from tickets where ticket_no = :new.ticket_no);
-    select flight_no into flightnum
-    from flights where flights.fid = (select fid from tickets where ticket_no = :new.ticket_no);
-    insert into reservations_audit(audit_id, username, passenger_id, flight_num, departure_time, time_of_record)
-    values(audit_seq.nextval, 'FLT_RES', :new.cust_id, flightnum, d_date, sysdate);
+    insert into reservations_audit(audit_id, username, passenger_id, ticket_no, time_of_record)
+    values(audit_seq.nextval, 'FLT_RES', :new.cust_id, :new.ticket_no, sysdate);
+
 EXCEPTION
-    WHEN invalid_month THEN
-        DBMS_OUTPUT.PUT_LINE('AUDIT TRIGGER ERROR/INVALID MONTH');
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('AUDIT TRIGGER ERROR: ' || SQLERRM);
 
 END Reservation_Audit_Trig;
 /
 
-*/
-
-
-
-
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- FLIGHT SCHEDULING --
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
 
 CREATE OR REPLACE PROCEDURE schedule_flight_all_params
 (
@@ -741,7 +711,7 @@ EXCEPTION
 END Schedule_Flight_all_params;
 /
 
-
+-- Overloaded for auto-generation of FID / Flight Number
 
 CREATE OR REPLACE PROCEDURE schedule_flight
 (
@@ -773,7 +743,6 @@ EXCEPTION
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('ERROR/SCHEDULE_FLIGHT:  ' || sqlerrm);
         ROLLBACK;
-
 END;
 /
 
