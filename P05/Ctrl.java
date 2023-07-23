@@ -17,7 +17,6 @@ class Ctrl {
 			String consoleOut = null;
 			String[] parsed = consoleIn.split("\\s+");
 
-
 			String cmd = parsed[0];
 			String param1 = null;
 			String param2 = null;
@@ -34,84 +33,76 @@ class Ctrl {
 				param4 = parsed[4];
 
 			switch (cmd) {
-
-			case "lst":
-				consoleOut = getAirportList(ds);
-				textIO.display(consoleOut);
-				break;
-
-			case "fnd":
-				consoleOut = findDirectFlight(param1, param2, ds);
-				textIO.display(consoleOut);
-				break;
-
-			case "prt":
-				consoleOut = printTicket(param1, param2, ds);
-				textIO.display(consoleOut);
-				break;
-
-			case "help":
-				consoleOut = help();
-				textIO.display(consoleOut);
-				break;
-			
-			case "fndopen":
-				consoleOut = find_open_seat(ds, param1);
-				textIO.display(consoleOut);
-				break;
-				
-			case "addcust": 
-				consoleOut = addCustomer(param1, param2, param3, ds);
-				textIO.display(consoleOut);
-				break;
-				
-			case "addairport":
-			    consoleOut = addAirport(param1, param2, param3, ds);
-			    textIO.display(consoleOut);
-			    break;
-			
-			case "resflight":
-			    consoleOut = resFlight(param1, param2, param3, param4, ds);
-			    textIO.display(consoleOut);
-			    break;
-			    
-			case "schedulefl":
-				textIO.display(schflSubmenu1());
-				String depart = textIO.prompt(prompt);
-				
-				textIO.display(schflSubmenu2());
-				String arrive = consoleIn = textIO.prompt(prompt);
-				
-				textIO.display(schflSubmenu3());
-				String seatAndPriceInfo = textIO.prompt(prompt);
-				String[] infoParsed = seatAndPriceInfo.split("\\s+");
-				
-				consoleOut = scheduleFlight(depart, arrive, Short.parseShort(infoParsed[0]),
-						Short.parseShort(infoParsed[1]), Double.parseDouble(infoParsed[2]) , ds);
-				textIO.display(consoleOut);
-			    break;
-				
-			case "quit":
-				ds.closeConn();
-				System.exit(0);
-
+				case "lst" -> {
+					consoleOut = getAirportList(ds);
+					textIO.display(consoleOut);
+				}
+				case "fnd" -> {
+					consoleOut = findDirectFlight(param1, param2, ds);
+					textIO.display(consoleOut);
+				}
+				case "lstflights" -> {
+					consoleOut = getAllFlights(ds);
+					textIO.display(consoleOut);
+				}
+				case "prt" -> {
+					consoleOut = printTicket(param1, param2, ds);
+					textIO.display(consoleOut);
+				}
+				case "help" -> {
+					consoleOut = help();
+					textIO.display(consoleOut);
+				}
+				case "fndopen" -> {
+					consoleOut = find_open_seat(ds, param1);
+					textIO.display(consoleOut);
+				}
+				case "addcust" -> {
+					consoleOut = addCustomer(param1, param2, param3, ds);
+					textIO.display(consoleOut);
+				}
+				case "addairport" -> {
+					consoleOut = addAirport(param1, param2, param3, ds);
+					textIO.display(consoleOut);
+				}
+				case "resflight" -> {
+					consoleOut = reserveFlights(param1, param2, param3, param4, ds);
+					textIO.display(consoleOut);
+				}
+				case "schedulefl" -> {
+					textIO.display(schflSubmenu1());
+					String depart = textIO.prompt(prompt);
+					textIO.display(schflSubmenu2());
+					String arrive = consoleIn = textIO.prompt(prompt);
+					textIO.display(schflSubmenu3());
+					String seatAndPriceInfo = textIO.prompt(prompt);
+					String[] infoParsed = seatAndPriceInfo.split("\\s+");
+					consoleOut = scheduleFlight(depart, arrive, Short.parseShort(infoParsed[0]),
+							Short.parseShort(infoParsed[1]), Double.parseDouble(infoParsed[2]), ds);
+					textIO.display(consoleOut);
+				}
+				case "quit" -> {
+					ds.closeConn();
+					System.exit(0);
+				}
 			}
 			consoleIn = textIO.prompt(prompt);
 		}
 	}
 
-	private String resFlight(String param1, String param2, String param3, String param4, DataSource ds) {
-		int status = ds.reserveFlight(Long.parseLong(param1),
-			Long.parseLong(param2), Short.parseShort(param3), Double.parseDouble(param4));
-		//System.out.println(status);
+	private String reserveFlights(String param1, String param2, String param3, String param4, DataSource ds) {
+
+		int status = ds.reserve_em( Long.parseLong(param1), Long.parseLong(param2),
+				Long.parseLong(param3), Long.parseLong(param4));
 		if(status == -1)
-			return "That seat's taken, BRO!\n";
-		return "Success!\n";
+			return "Reservation failed\n";
+		else
+			return "Reservation successful\n";
 	}
 
 	private String find_open_seat(DataSource ds, String flightID) {
 		int openSeat = ds.find_open_seat(Integer.parseInt(flightID));
-		
+
 		if(openSeat == -1)
 			return "No open seats\n";
 		else
@@ -119,14 +110,16 @@ class Ctrl {
 	}
 
 	private String help() {
-		
+
 		String commands = "\nhelp -- display a list of commands\n" + "quit -- quit the application.\n"
 				+ "lst airports\n"
 				+ "fnd <departure airport> <destination airport> -- list all direct "
 				+ "flights between the origin and destination.\n" + "prt ticket# <Cust ID#> <ticket number>\n"
+				+ "lstflights -- list all flights\n"
 		        + "addcust <firstname> <lastname> <balance>\n"
 				+ "addairport <airport code> <city> <state> -- Use '_' to separate multi-word city names\n"
-		        + "resflight <customer id> <flight number> <seat number> <purchase amount> -- reserves a ticket\n"
+		       // + "resflight <customer id> <flight number> <seat number> <purchase amount> -- reserves a ticket\n"
+				+ "resflight <FID 1> [<FID 2>] [<FID 3>] <customer id>\n"
 				+ "fndopen <flight number> -- returns an open seat if available\n"
 				+ "schedulefl -- opens submenu for adding a new flight\n";
 		return commands;
@@ -152,12 +145,27 @@ class Ctrl {
 	}
 
 	private String findDirectFlight(String param1, String param2, DataSource ds) {
-		
-		FlightsDAO flightsDAO = ds.findDirectFlight(param1, param2);
-		ArrayList<Flight> arraylistf = flightsDAO.getFlightsList();
+
+		Itenerary itenerary = ds.findDirectFlight(param1, param2);
+		ArrayList<Flight> arraylistf = itenerary.getFlightsList();
 		String results = "";
 		if (arraylistf.isEmpty())
 			results += "\nNo flights found. Make sure airport codes are in uppercase, I'm not converting them for you SUCKA!\n\n";
+		else {
+			results = "\nFID\tFrom\tTime\tTo\tTime\tOpen Seats\n";
+			for (Flight f : arraylistf)
+				results += f.getFID() + "\t" + f.getDepartureAirportCode() + "\t" + f.getDateDepart() + " " + f.getJustDepartureTime() + "\t"
+						+ f.getArrivalAirportCode() + "\t" + f.getTimeArrive() + "\t" + f.getOpenSeats() + "\n";
+		}
+		return results;
+	}
+
+	private String getAllFlights(DataSource ds){
+		Itenerary itenerary = ds.getAllFlights();
+		ArrayList<Flight> arraylistf = itenerary.getFlightsList();
+		String results = "";
+		if (arraylistf.isEmpty())
+			results += "\nAin't no flights 'round heer!\n\n";
 		else {
 			results = "\nFID\tFrom\tTime\tTo\tTime\tOpen Seats\n";
 			for (Flight f : arraylistf)

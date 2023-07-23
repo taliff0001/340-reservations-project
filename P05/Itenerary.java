@@ -1,10 +1,10 @@
 import java.util.ArrayList;
 
-public class FlightsDAO {
+public class Itenerary {
 
 	private ArrayList<Flight> flightsList;
 		
-	public FlightsDAO() {
+	public Itenerary() {
 		this.flightsList = new ArrayList<>();
 	}
 	
