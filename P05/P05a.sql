@@ -102,16 +102,16 @@ CREATE TABLE reservations_audit (
             \/
 */
 
-
 CREATE VIEW Flight_Info_LV AS
 (
-SELECT F.FID, F.dep_airport,F.dep_date, F.dest_airport, F.arrival_date,
-       MAX(S.seat_no) - MAX(L.seat_no) AS Open_Seats
-FROM Flights F
-         JOIN seats S ON F.FID = S.FID
-         JOIN legs L ON F.FID = L.FID
-GROUP BY F.FID, F.dep_airport,F.dep_date, F.dest_airport, F.arrival_date
-    );
+    SELECT F.FID, F.dep_airport,F.dep_date, F.dest_airport,
+    F.arrival_date, COUNT(S.seat_no) AS Open_Seats
+    FROM flights f
+    INNER JOIN seats S ON F.FID = S.FID
+    GROUP BY F.FID, F.dep_airport,F.dep_date, F.dest_airport, F.arrival_date
+    ORDER BY F.FID
+);
+
 
 
 
@@ -257,24 +257,26 @@ CREATE OR REPLACE PACKAGE reserve AS
     )
         RETURN flights.cost%TYPE;
 
-    PROCEDURE reserve_em
+    FUNCTION reserve_em
     (
         FID1 IN flights.FID%TYPE,
         FID2 IN flights.FID%TYPE,
         FID3 IN flights.FID%TYPE,
         cust_num IN customers.cust_id%TYPE
-    );
-    PROCEDURE reserve_em
+    ) RETURN NUMBER;
+
+    FUNCTION reserve_em
     (
         FID1 IN flights.FID%TYPE,
         FID2 IN flights.FID%TYPE,
         cust_num IN customers.cust_id%TYPE
-    );
-    PROCEDURE reserve_em
+    )RETURN NUMBER;
+
+    FUNCTION reserve_em
     (
         FID1 IN flights.FID%TYPE,
         cust_num IN customers.cust_id%TYPE
-    );
+    )RETURN NUMBER;
 
 
 
@@ -564,13 +566,13 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
     -- RESERVE THEM JANKS --
 --------------------------------------------------------------------
 
-    PROCEDURE reserve_em
+    FUNCTION reserve_em
     (
         FID1 IN flights.FID%TYPE,
         FID2 IN flights.FID%TYPE,
         FID3 IN flights.FID%TYPE,
         cust_num IN customers.cust_id%TYPE
-    )
+    ) RETURN NUMBER
         IS
 
         seats_varray reserve.mo_seats_holder;
@@ -578,13 +580,13 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
         PRAGMA EXCEPTION_INIT (invalid_parameter, -02290);
 
     BEGIN
-        CASE
-            WHEN FID1 + FID2 + FID3 = -3 THEN
-                RAISE invalid_parameter;
-            ELSE
-                NULL;
-
-            END CASE;
+--         CASE
+--             WHEN FID1 + FID2 + FID3 = -3 THEN
+--                 RAISE invalid_parameter;
+--             ELSE
+--                 NULL;
+--
+--             END CASE;
 
         CASE
 
@@ -605,20 +607,22 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
 
         WHEN invalid_parameter THEN
             DBMS_OUTPUT.PUT_LINE('INVALID PARAMETERS TO RESERVE_EM');
-
+            ROLLBACK;
+            RETURN -1;
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE_EM: '||SQLCODE||' '||SQLERRM);
             ROLLBACK;
+            RETURN -2;
     END reserve_em;
 
 -- Overloaded -- Two Flights --
 
-    PROCEDURE reserve_em
+    FUNCTION reserve_em
     (
         FID1 IN flights.FID%TYPE,
         FID2 IN flights.FID%TYPE,
         cust_num IN customers.cust_id%TYPE
-    )
+    ) RETURN NUMBER
         IS
     BEGIN
         reserve_em(FID1,FID2, -1, cust_num);
@@ -626,15 +630,16 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE_EM: '||SQLCODE||' '||SQLERRM);
             ROLLBACK;
+            RETURN -2;
     END;
 
 -- Overloaded -- One Flight --
 
-    PROCEDURE reserve_em
+    FUNCTION reserve_em
     (
         FID1 IN flights.FID%TYPE,
         cust_num IN customers.cust_id%TYPE
-    )
+    ) RETURN NUMBER
         IS
     BEGIN
         reserve_em(FID1,-1, -1, cust_num);
@@ -642,6 +647,7 @@ CREATE OR REPLACE PACKAGE BODY reserve AS
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE_EM: '||SQLCODE||' '||SQLERRM);
             ROLLBACK;
+            RETURN -2;
     END;
 
 END reserve;

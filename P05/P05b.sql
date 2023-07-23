@@ -4,26 +4,27 @@
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-/*
-
-USAGE:
-
-Command Table
--------------
-[cmd_ID] is a key representing the corresponding row in the Sim_Data table
-[cmd] is a 3-character string representing the desired operation
-Possible operations are ['add'] ['scd'] ['fnd'] ['res']
-
-Sim_Data Table
---------------
-Each row represents data to be processed by the corresponding [cmd_ID]/[cmd]
 
 
-Execute commands on a range of rows by calling the cmd function:
-----------------------------------------------------------------
-[exec cmd(<first row>, <final row>)]
 
-*/
+-- USAGE:
+--
+-- Command Table
+-- -------------
+-- [cmd_ID] is a key representing the corresponding row in the Sim_Data table
+-- [cmd] is a 3-character string representing the desired operation
+-- Possible operations are ['add'] ['scd'] ['fnd'] ['res']
+--
+-- Sim_Data Table
+-- --------------
+-- Each row represents data to be processed by the corresponding [cmd_ID]/[cmd]
+--
+--
+-- Execute commands on a range of rows by calling the cmd function:
+-- ----------------------------------------------------------------
+-- [exec cmd(<first row>, <final row>)]
+--
+
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- -- -- Insert for Flight or Customer -- -- --
@@ -78,7 +79,8 @@ CREATE OR REPLACE PROCEDURE scd
 BEGIN
 
     SELECT * INTO sim_row FROM Sim_Data
-    WHERE Sim_Data.cmd_ID = current_row; -- Should get the row in Command it appears in and execute based on that
+    WHERE Sim_Data.cmd_ID = current_row;
+
 
     Schedule_Flight_all_params
         (
@@ -120,7 +122,8 @@ CREATE OR REPLACE PROCEDURE fnd
 BEGIN
 
     SELECT p1 INTO FL_ID FROM Sim_data
-    WHERE Sim_Data.cmd_ID = current_row;  -- Should get the row in Command it appears in and execute based on that
+    WHERE Sim_Data.cmd_ID = current_row;
+
 
     seat := find_open_seat(FL_ID);
 

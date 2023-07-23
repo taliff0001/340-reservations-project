@@ -73,32 +73,32 @@ INSERT INTO Command (cmd_id, cmd) VALUES (11, 'add');
 INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5)
 VALUES (11, 1, 'customer', '102', 'Ron', 'Jeremy', '100');
 
-INSERT INTO Command (cmd_id, cmd) VALUES (11, 'add');
+INSERT INTO Command (cmd_id, cmd) VALUES (12, 'add');
 INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5)
-VALUES (11, 1, 'customer', '103', 'Kelly', 'Clarkson', '2500');
+VALUES (12, 1, 'customer', '103', 'Kelly', 'Clarkson', '2500');
 
 -- RESERVATIONS
 
 -- One leg
-INSERT INTO Command (cmd_id, cmd) VALUES (12, 'res');
-INSERT INTO Sim_Data (cmd_id, item_no, p1, p2)
-VALUES (12, 1, '100', '1001'); 
--- Two legs
 INSERT INTO Command (cmd_id, cmd) VALUES (13, 'res');
-INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3)
-VALUES (13, 1, '101', '1002', '1003'); 
--- Three legs
+INSERT INTO Sim_Data (cmd_id, item_no, p1, p2)
+VALUES (13, 1, '100', '1001');
+-- Two legs
 INSERT INTO Command (cmd_id, cmd) VALUES (14, 'res');
-INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4)
-VALUES (14, 1, '102', '1002', '1003', '1004'); 
--- Three legs fail
+INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3)
+VALUES (14, 1, '101', '1002', '1003');
+-- Three legs
 INSERT INTO Command (cmd_id, cmd) VALUES (15, 'res');
 INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4)
-VALUES (15, 1, '103', '1003', '1004', '1005'); 
+VALUES (15, 1, '102', '1002', '1003', '1004');
+-- Three legs fail
+INSERT INTO Command (cmd_id, cmd) VALUES (16, 'res');
+INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4)
+VALUES (16, 1, '103', '1003', '1004', '1005');
 
-INSERT INTO Command (cmd_id, cmd) VALUES (16, 'fnd');
+INSERT INTO Command (cmd_id, cmd) VALUES (17, 'fnd');
 INSERT INTO Sim_Data (cmd_id, item_no, p1)
-VALUES (16, 1, '1001');
+VALUES (17, 1, '1001');
 
 COMMIT;
 
