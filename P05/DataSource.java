@@ -50,21 +50,46 @@ public class DataSource {
         }
     }
 
-    public int reserve_em(Long FID_1, Long FID_2, Long FID_3, Long cust_id) {
-        int status = -1;
+    public int reserve_em(String firstFID, String res2, String res3, String res4) {
+
+        int status = 0;
+        int resem_cust_id = 5;
+        int resem_param_2 = 3;
+        int resem_param_3 = 4;
+
         try (
                 Connection conn = openConnection();
-                CallableStatement cs = conn.prepareCall("{call reserve.reserve_em(?,?,?,?)}")
+                CallableStatement cs = conn.prepareCall("{? = call reserve.reserve_em(?,?,?,?)}")
         ) {
 
-            cs.setLong(1, FID_1);
-            cs.setLong(2, FID_2);
-            cs.setLong(3, FID_3);
-            cs.setLong(4, cust_id);
-            cs.execute();
-            status = 1;
+            cs.registerOutParameter(1, Types.INTEGER);
+
+            cs.setLong(2, Long.parseLong(firstFID));
+
+            if(res3 == null && res4 == null) {
+
+                cs.setLong(resem_param_2, -1);
+                cs.setLong(resem_param_3, -1);
+                cs.setLong(resem_cust_id, Long.parseLong(res2));
+
+            } else if (res4 == null) {
+
+                cs.setLong(resem_param_3, -1);
+                cs.setLong(resem_param_2, Long.parseLong(res2));
+                cs.setLong(resem_cust_id, Long.parseLong(res3));
+
+            } else {
+                cs.setLong(resem_param_2, Long.parseLong(res2));
+                cs.setLong(resem_param_3, Long.parseLong(res3));
+                cs.setLong(resem_cust_id, Long.parseLong(res4));
+            }
+
+            cs.executeUpdate();
+            status = cs.getInt(1);
+            System.out.println("status: " + status);
+
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         } finally {
             if (conn != null)
                 try {
@@ -118,7 +143,7 @@ public class DataSource {
             cs.executeUpdate();
             open_seat = cs.getInt(1);
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         } finally {
             if (conn != null)
                 try {
@@ -145,7 +170,7 @@ public class DataSource {
             status = cs.executeUpdate();
 
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         } finally {
             if (conn != null)
                 try {
@@ -406,7 +431,8 @@ public class DataSource {
             cs.setDouble(7, price);
             status = cs.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Error scheduling flight: " + e);
+            System.out.println("Error scheduling flight: " + e.getMessage());
+            e.printStackTrace();
         } finally {
             if (conn != null)
                 try {
@@ -421,7 +447,8 @@ public class DataSource {
     // Helper method to check if an airport exists in the airport table
     private boolean isAirportExists(String airportCode) throws SQLException {
         String query = "SELECT COUNT(*) FROM Airports WHERE airport_code = ?";
-        try (PreparedStatement statement = conn.prepareStatement(query)) {
+        try ( Connection conn = openConnection();
+                PreparedStatement statement = conn.prepareStatement(query)) {
             statement.setString(1, airportCode);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {

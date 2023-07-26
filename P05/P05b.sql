@@ -125,7 +125,7 @@ BEGIN
     WHERE Sim_Data.cmd_ID = current_row;
 
 
-    seat := find_open_seat(FL_ID);
+    seat := reserve.find_open_seat(FL_ID);
 
     DBMS_OUTPUT.PUT_LINE('FOUND SEAT NO.  ' || seat);
 
@@ -138,8 +138,45 @@ EXCEPTION
 END fnd;
 /
 
+
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- -- -- -- Reserve a flight -- -- -- --
+-- -- -- -- Reserve a flight P04-- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+create or replace procedure res_P04
+(current_row IN SMALLINT)
+    
+    IS
+    
+        cust_num customers.cust_id%type;
+        flightID flights.fid%type;
+        seat_num legs.seat_no%type;
+        ticket_price tickets.price%type;
+    
+    BEGIN
+    
+        SELECT p1 INTO cust_num FROM sim_data WHERE sim_data.cmd_id = current_row; -- change these also
+        SELECT p2 INTO flightID FROM sim_data WHERE sim_data.cmd_id = current_row;
+        SELECT p3 INTO seat_num FROM sim_data WHERE sim_data.cmd_id = current_row;
+        SELECT cost INTO ticket_price FROM flights WHERE flights.FID = flightID;
+        
+        reserve_flight(cust_num, flightID, seat_num, ticket_price);
+        
+    EXCEPTION
+    
+        WHEN NO_DATA_FOUND THEN
+         DBMS_OUTPUT.PUT_LINE('NO DATA FOUND');
+         ROLLBACK;
+         
+        WHEN OTHERS THEN
+         ROLLBACK;
+         DBMS_OUTPUT.PUT_LINE('ERROR/RESERVE SEAT: ' || SQLERRM);  
+            
+    END res_P04;
+    /        
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- -- -- -- Reserve a flight P05 -- -- -- --
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 create or replace procedure res
@@ -151,8 +188,7 @@ create or replace procedure res
     FID_1 flights.fid%type;
     FID_2 flights.fid%type;
     FID_3 flights.fid%type;
-    null_parameter EXCEPTION;
-    PRAGMA EXCEPTION_INIT(null_parameter, -20999);
+    return_val NUMBER;
 
 BEGIN
 
@@ -163,33 +199,32 @@ BEGIN
 
     CASE
 
-        WHEN (FID_1 IS NULL AND FID_2 IS NULL AND FID_3 IS NULL)
-            OR cust_num IS NULL THEN RAISE null_parameter;
-
         WHEN FID_2 IS NULL AND FID_3 IS NULL THEN
-            reserve.reserve_em(FID_1, cust_num );
+            return_val := reserve.reserve_em(FID_1, cust_num );
 
         WHEN FID_3 IS NULL THEN
-            reserve.reserve_em(FID_1, FID_2, cust_num);
+            return_val := reserve.reserve_em(FID_1, FID_2, cust_num);
 
         ELSE
-            reserve.reserve_em(FID_1, FID_2, FID_3, cust_num);
+            return_val := reserve.reserve_em(FID_1, FID_2, FID_3, cust_num);
 
         END CASE;
 
+    IF return_val = -1 THEN
+        DBMS_OUTPUT.PUT_LINE('RESERVATION FAILED');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('RESERVATION SUCCESSFUL');
+    END IF;
+
 EXCEPTION
 
-    WHEN null_parameter THEN
-        DBMS_OUTPUT.PUT_LINE('NULL PARAMETER PASSED TO RES');
-        ROLLBACK;
-
     WHEN NO_DATA_FOUND THEN
+        ROLLBACK;
         DBMS_OUTPUT.PUT_LINE('NO DATA FOUND / RES CMD');
-        ROLLBACK;
 
-    WHEN OTHERS THEN
+    WHEN TOO_MANY_ROWS THEN
         ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('ERROR/RES CMD: ' || SQLERRM);
+        DBMS_OUTPUT.PUT_LINE('TOO MANY ROWS / RES CMD');
 
 END res;
 /
@@ -219,7 +254,8 @@ BEGIN
             WHEN CMND = 'add' THEN ins(curr_row);
             WHEN CMND = 'scd' THEN scd(curr_row);
             WHEN CMND = 'fnd' THEN fnd(curr_row);
-            WHEN CMND = 'res' THEN res(curr_row);
+            WHEN CMND = 'res_P05' THEN res(curr_row);
+            WHEN CMND = 'res_P04' THEN res_P04(curr_row);
             END CASE;
 
         IF curr_row = end_row THEN EXIT;

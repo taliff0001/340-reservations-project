@@ -3,7 +3,7 @@ DROP TABLE Command;
 
 CREATE TABLE Command (
   cmd_id SMALLINT PRIMARY KEY,
-  cmd CHAR(3)
+  cmd VARCHAR2(7)
 );
 
 CREATE TABLE Sim_Data (
@@ -77,32 +77,39 @@ INSERT INTO Command (cmd_id, cmd) VALUES (12, 'add');
 INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5)
 VALUES (12, 1, 'customer', '103', 'Kelly', 'Clarkson', '2500');
 
+
+INSERT INTO Command (cmd_id, cmd) VALUES (13, 'add');
+INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5)
+VALUES (13, 1, 'customer', '104', 'John', 'Holmes', '2500');
+
 -- RESERVATIONS
 
 -- One leg
-INSERT INTO Command (cmd_id, cmd) VALUES (13, 'res');
+INSERT INTO Command (cmd_id, cmd) VALUES (14, 'res_P05');
 INSERT INTO Sim_Data (cmd_id, item_no, p1, p2)
-VALUES (13, 1, '100', '1001');
+VALUES (14, 1, '100', '1001');
 -- Two legs
-INSERT INTO Command (cmd_id, cmd) VALUES (14, 'res');
+INSERT INTO Command (cmd_id, cmd) VALUES (15, 'res_P05');
 INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3)
-VALUES (14, 1, '101', '1002', '1003');
+VALUES (15, 1, '101', '1002', '1003');
 -- Three legs
-INSERT INTO Command (cmd_id, cmd) VALUES (15, 'res');
+INSERT INTO Command (cmd_id, cmd) VALUES (16, 'res_P05');
 INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4)
-VALUES (15, 1, '102', '1002', '1003', '1004');
+VALUES (16, 1, '102', '1002', '1003', '1004');
 -- Three legs fail
-INSERT INTO Command (cmd_id, cmd) VALUES (16, 'res');
+INSERT INTO Command (cmd_id, cmd) VALUES (17, 'res_P05');
 INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4)
-VALUES (16, 1, '103', '1003', '1004', '1005');
+VALUES (17, 1, '103', '1003', '1004', '1005');
 
-INSERT INTO Command (cmd_id, cmd) VALUES (17, 'fnd');
+INSERT INTO Command (cmd_id, cmd) VALUES (18, 'fnd');
 INSERT INTO Sim_Data (cmd_id, item_no, p1)
-VALUES (17, 1, '1001');
+VALUES (18, 1, '1001');
 
 COMMIT;
 
 SHOW ERRORS;
+
+-- EXTRA DATA FOR TESTING --
 /*
 insert into airports values ('RIC', 'Richmond', 'VA');
 insert into airports values ('BWI', 'Baltimore', 'MD');
@@ -113,18 +120,6 @@ insert into airports values ('SNA', 'Orange County', 'CA');
 insert into airports values ('LAX', 'Los Angeles', 'CA');
 insert into airports values ('LAS', 'Las Vegas', 'NV');
 
-
-INSERT INTO Command (cmd_id, cmd) VALUES (7, 'scd');
-INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5, p6, p7)
-VALUES (7, 1, '1002', '8930', '8/1/2023', 'RIC', '9/1/2023', 'MDT', '325');
-
-INSERT INTO Command (cmd_id, cmd) VALUES (8, 'scd');
-INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5, p6, p7)
-VALUES (8, 1, '1003', '6928', '8/1/2023', 'MDT', '8/1/2023', 'CVG', '250');
-
-INSERT INTO Command (cmd_id, cmd) VALUES (9, 'add');
-INSERT INTO Sim_Data (cmd_id, item_no, p1, p2, p3, p4, p5)
-VALUES (9, 1, 'customer', '101', 'Notorious', 'B.I.G.', '1100');
 
 insert into customers values(102,'Ron','Jeremy', 2000);
 insert into customers values(103,'John','Holms', 2000);

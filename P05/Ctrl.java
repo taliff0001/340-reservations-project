@@ -65,8 +65,8 @@ class Ctrl {
 					consoleOut = addAirport(param1, param2, param3, ds);
 					textIO.display(consoleOut);
 				}
-				case "resflight" -> {
-					consoleOut = reserveFlights(param1, param2, param3, param4, ds);
+				case "reserve_em" -> {
+					consoleOut = reserve_em(param1, param2, param3, param4, ds);
 					textIO.display(consoleOut);
 				}
 				case "schedulefl" -> {
@@ -90,14 +90,31 @@ class Ctrl {
 		}
 	}
 
-	private String reserveFlights(String param1, String param2, String param3, String param4, DataSource ds) {
+	private String help() {
 
-		int status = ds.reserve_em( Long.parseLong(param1), Long.parseLong(param2),
-				Long.parseLong(param3), Long.parseLong(param4));
+		String commands = "\nhelp -- display a list of commands\n" + "quit -- quit the application.\n"
+				+ "lst airports\n"
+				+ "fnd <departure airport> <destination airport> -- list all direct "
+				+ "flights between the origin and destination.\n" + "prt ticket# <Cust ID#> <ticket number>\n"
+				+ "lstflights -- list all flights\n"
+				+ "addcust <firstname> <lastname> <balance>\n"
+				+ "addairport <airport code> <city> <state> -- Use '_' to separate multi-word city names\n"
+				// + "resflight <customer id> <flight number> <seat number> <purchase amount> -- reserves a ticket\n"
+				+ "reserve_em <FID 1> [<FID 2>] [<FID 3>] <customer id>\n"
+				+ "fndopen <flight number> -- returns an open seat if available\n"
+				+ "schedulefl -- opens submenu for adding a new flight\n";
+		return commands;
+	}
+
+	private String reserve_em(String param1, String param2, String param3, String param4, DataSource ds) {
+
+		int status = ds.reserve_em(param1, param2, param3, param4);
+
+		System.out.println("Status = " + status);
+
 		if(status == -1)
-			return "Reservation failed\n";
-		else
-			return "Reservation successful\n";
+			return "Not happenin', Bro!\n";
+		return "Success!\n";
 	}
 
 	private String find_open_seat(DataSource ds, String flightID) {
@@ -107,22 +124,6 @@ class Ctrl {
 			return "No open seats\n";
 		else
 		 return "Found seat# " + openSeat + "\n";
-	}
-
-	private String help() {
-
-		String commands = "\nhelp -- display a list of commands\n" + "quit -- quit the application.\n"
-				+ "lst airports\n"
-				+ "fnd <departure airport> <destination airport> -- list all direct "
-				+ "flights between the origin and destination.\n" + "prt ticket# <Cust ID#> <ticket number>\n"
-				+ "lstflights -- list all flights\n"
-		        + "addcust <firstname> <lastname> <balance>\n"
-				+ "addairport <airport code> <city> <state> -- Use '_' to separate multi-word city names\n"
-		       // + "resflight <customer id> <flight number> <seat number> <purchase amount> -- reserves a ticket\n"
-				+ "resflight <FID 1> [<FID 2>] [<FID 3>] <customer id>\n"
-				+ "fndopen <flight number> -- returns an open seat if available\n"
-				+ "schedulefl -- opens submenu for adding a new flight\n";
-		return commands;
 	}
 
 	private String printTicket(String param1, String param2, DataSource ds) {
